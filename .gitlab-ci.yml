@@ -1,0 +1,9 @@
+image: r-base
+
+before_script:
+  - Rscript requirements.r
+
+run-test:
+  script:
+    - cd src && Rscript Tests.r
+
