@@ -4,8 +4,7 @@ before_script:
   - Rscript requirements.r
 
 test:
-  script:
-    - cd src && Rscript Tests.r
+  script: "cd src && Rscript Tests.r"
 
 pages:
 	script:
