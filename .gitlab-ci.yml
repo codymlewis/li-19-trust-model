@@ -1,20 +1,14 @@
 image: r-base
 
-stages:
-  - test
-  - deploy
-
 before_script:
   - Rscript requirements.r
 
 test:
-  stage: test
   script:
     - cd src && Rscript Tests.r
 
 
 pages:
-	stage: deploy
 	script:
 		- mkdir .public
 		- cp -r * .public
