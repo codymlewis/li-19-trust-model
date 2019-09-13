@@ -1,9 +1,14 @@
 image: r-base
 
+stages:
+  - test
+  - deploy
+
 before_script:
   - Rscript requirements.r
 
-run-test:
+test:
+  stage: test
   script:
     - cd src && Rscript Tests.r
 

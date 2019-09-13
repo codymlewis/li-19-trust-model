@@ -36,10 +36,10 @@
                 return Math.floor(map.height * y / mapCanvas.height);
             }
 
-            cycle(x, y, addWidth, addHeight) {
-                for (var i = 0; i < addWidth; ++i) {
-                    for (var j = 0; j < addHeight; ++j) {
-                        this.tiles[y + j][x + i] = (this.tiles[y + j][x + i] + 1) % 2;
+            cycle(x, y, addWidth, addHeight, cycleTo) {
+                for (var i = 0; i < addWidth && x + i < this.width; ++i) {
+                    for (var j = 0; j < addHeight && y + j < this.height; ++j) {
+                        this.tiles[y + j][x + i] = cycleTo;
                     }
                 }
             }
@@ -89,9 +89,12 @@
 
         var interval = '';
         var colouring = false;
+        var cycleToMode = 0;
 
-        mapCanvas.addEventListener("mousedown", () => {
+        mapCanvas.addEventListener("mousedown", (e) => {
             colouring = true;
+            coords = getXYCanvas(e);
+            cycleToMode = (map.tiles[coords.y][coords.x] + 1) % 2;
         }, false);
 
         mapCanvas.addEventListener("mouseup", () => {
@@ -102,18 +105,30 @@
             colouring = false;
         }, false);
 
-        mapCanvas.addEventListener("mousemove", (event) => {
+        var fillSize = 12;
+
+        function getXYCanvas(e) {
+            var rect = mapCanvas.getBoundingClientRect();
+            var x = map.toX(e.clientX - rect.left);
+            var y = map.toY(e.clientY - rect.top);
+            return {x: x, y: y};
+        }
+
+        mapCanvas.addEventListener("mousemove", (e) => {
             if (colouring) {
-                var rect = mapCanvas.getBoundingClientRect();
-                var x = map.toX(event.clientX - rect.left);
-                console.log(`pre-x: ${event.clientX - rect.left}`)
-                console.log(`canvas width: ${mapCanvas.width}`)
-                var y = map.toY(event.clientY - rect.top);
-                console.log(`x: ${x}, y: ${y}`)
-                console.log(`map tile x, y: ${map.tiles[y][x]}`)
-                map.cycle(x, y, 10, 10);
-                console.log(`map tile x, y: ${map.tiles[y][x]}`)
-                drawTile(x, y, 10, 10);
+                coords = getXYCanvas(e);
+                map.cycle(
+                    Math.max(0, coords.x - fillSize),
+                    Math.max(0, coords.y - fillSize),
+                    2 * fillSize,
+                    2 * fillSize, cycleToMode
+                );
+                drawTile(
+                    Math.max(0, coords.x - fillSize),
+                    Math.max(0, coords.y - fillSize),
+                    2 * fillSize,
+                    2 * fillSize
+                );
             }
         }, false);
 
