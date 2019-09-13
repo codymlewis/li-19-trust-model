@@ -5,11 +5,11 @@ Device <- setRefClass(
         contacts="numeric",
         time="numeric",
         capability="double",
-        location="double",  # bitwShiftiL(y, ceiling(log(max_loc, base=2))) + x
         velocity="double",
         trust="numeric",
         distrust="numeric",
-        unknown="numeric"
+        unknown="numeric",
+        domain="character"
     ),
 
     methods = list(
