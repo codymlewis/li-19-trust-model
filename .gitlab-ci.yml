@@ -4,6 +4,9 @@ stages:
   - test
   - deploy
 
+before_script:
+  - Rscript GetDevtools.R
+
 test:
   stage: test
   script:
