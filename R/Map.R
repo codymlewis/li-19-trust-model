@@ -1,4 +1,4 @@
-source("Functions.r")
+# source("R/Functions.R")
 
 Tile <- setRefClass(
     "Tile",
@@ -48,6 +48,20 @@ Map <- setRefClass(
                 }
                 cat.progress(i, ncol(map), prefix=sprintf("Column %d of %d", i, ncol(map)))
             }
+        },
+
+        size = function() {
+            "Get the size of the map"
+            return (length(tiles))
+        },
+
+        get.tile = function(location) {
+            "Get the tile at the location if there is one, otherwise NA"
+            if (location[[1]] <= length(tiles) &&
+                location[[2]] <= length(tiles[[location[[1]]]])) {
+                return (tile[[location[[1]]]][[location[[2]]]])
+            }
+            return (NA)
         }
     )
 )

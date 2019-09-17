@@ -4,13 +4,10 @@ stages:
   - test
   - deploy
 
-before_script:
-  - Rscript requirements.r
-
 test:
   stage: test
   script:
-    - cd src && Rscript Tests.r
+    - R -e "library(devtools); devtools::test()"
 
 pages:
   stage: deploy

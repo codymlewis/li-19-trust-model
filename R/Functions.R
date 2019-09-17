@@ -34,5 +34,5 @@ cat.progress <- function(current, total, progress_len=31, prefix="")
 # Find the Euclidean distance between the points p and q
 euc.dist <- function(p, q)
 {
-    return sqrt(sum((p - q)**2))
+    return (sqrt(sum((p - q)**2)))
 }
