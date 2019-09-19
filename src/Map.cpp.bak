@@ -1,0 +1,27 @@
+#include <memory>
+#include <Rcpp.h>
+
+#include "Map.h"
+#include "GetData.h"
+#include "Tile.h"
+
+li19trustmodel::Map::Map() {
+    std::vector<std::vector<int>> data = li19trustmodel::get_data();
+    tiles = std::unique_ptr<std::vector<std::vector<li19trustmodel::Tile>>>(
+            new std::vector<std::vector<li19trustmodel::Tile>>()
+    );
+    for (std::vector<int> row : data) {
+        std::vector<li19trustmodel::Tile> tiled_row;
+        for (int col : row) {
+            tiled_row.push_back(li19trustmodel::Tile(col));
+        }
+        tiles->push_back(tiled_row);
+    }
+}
+
+RCPP_MODULE(Map) {
+    using namespace Rcpp;
+
+    class_<li19trustmodel::Map>("Map")
+        .constructor();
+}

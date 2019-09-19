@@ -1,3 +1,13 @@
+#' A Base Station Class
+#'
+#' This class defines the base stations within the trust model, these are
+#' essentially gateways.
+#' @keywords Base Station Gateway
+#' @export BaseStation
+#' @exportClass BaseStation
+#' @examples
+#' BaseStation(1, 1)
+
 BaseStation <- setRefClass(
     "BaseStation",
     fields = list(

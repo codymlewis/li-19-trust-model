@@ -1,6 +1,3 @@
-# source("R/Functions.R")
-# source("R/Map.R")
-
 Device <- setRefClass(
     "Device",
     fields = list(

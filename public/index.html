@@ -44,15 +44,21 @@
                 }
             }
 
-            toCSV() {
-                var csv = "";
+            toFile() {
+                var file = "#include <vector>\n";
+                file += "#include \"GetData.h\"\n\n";
+                file += "std::vector<std::vector<int>> li19trustmodel::get_data()\n";
+                file += "{\n";
+                file += "\tstd::vector<std::vector<int>> v;\n";
                 for (var i in this.tiles) {
+                    file += "\tv.push_back({";
                     for (var j in this.tiles[i]) {
-                        csv += `${this.tiles[i][j] == 1 ? "w" : "l"},`;
+                        file += `${this.tiles[i][j]},`;
                     }
-                    csv = csv.slice(0, -1) + "\n";
+                    file = file.slice(0, -1);
+                    file += "});\n";
                 }
-                return csv;
+                return file + "\treturn v;\n}";
             }
         }
 
@@ -133,8 +139,8 @@
         }, false);
 
         document.getElementById("download").addEventListener("click", () => {
-            var csvBlob = new Blob([map.toCSV()], { type: 'text/plain' })
-            window.location.href = window.URL.createObjectURL(csvBlob);
+            var fileBlob = new Blob([map.toFile()], { type: 'text/plain' })
+            window.location.href = window.URL.createObjectURL(fileBlob);
         })
     </script>
 </html>

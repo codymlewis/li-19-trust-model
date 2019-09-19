@@ -10,7 +10,7 @@ before_script:
 test:
   stage: test
   script:
-    - R -e "library(devtools); devtools::test()"
+    - make test
 
 pages:
   stage: deploy
