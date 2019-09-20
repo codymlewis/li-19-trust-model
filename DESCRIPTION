@@ -9,7 +9,6 @@ Authors@R:
 Description: Simulate The Trust Model Proposed In Context-Aware Trust
     Management System for IoT Applications with Multiple Domains
 Imports:
-    datastructures,
     Rcpp
 License: What license it uses
 Encoding: UTF-8
@@ -17,9 +16,9 @@ LazyData: true
 RoxygenNote: 6.1.1
 Suggests:
     testthat (>= 2.1.0)
-LinkingTo: 
+LinkingTo:
     Rcpp
-Collate: 
+Collate:
     'Params.R'
     'BaseStation.R'
     'Functions.R'

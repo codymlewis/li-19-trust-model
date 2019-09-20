@@ -1,10 +1,9 @@
-#' @include Params.R
-
 #' A Base Station Class
 #'
 #' This class defines the base stations within the trust model, these are
 #' essentially gateways.
 #' @keywords Base Station Gateway
+#' @include Params.R
 #' @export BaseStation
 #' @exportClass BaseStation
 #' @examples

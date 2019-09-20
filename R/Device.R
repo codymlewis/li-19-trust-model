@@ -14,7 +14,9 @@ Device <- setRefClass(
         trust="numeric",
         distrust="numeric",
         unknown="numeric",
-        domain="numeric"
+        domain="numeric",
+        contexts="list",
+        contexts.cached="list"
     ),
 
     methods = list(
