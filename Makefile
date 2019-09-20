@@ -19,7 +19,7 @@ deps:
 	install.packages('devtools'); \
 	}"
 
-ci-test: deps test
+ci-test: deps all test
 
 docs:
 	R -e "devtools::document()"
