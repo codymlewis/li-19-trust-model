@@ -43,7 +43,7 @@ test_that("compute trust works", {
 
 test_that("weighted average context works", {
     expect_that(
-        weighted.avg.context(0.8, c(0.2, 0.3, 0.1, 0.5, 0.6)),
+        weighted.avg.context(c(0.2, 0.3, 0.1, 0.5, 0.6)),
         equals(0.34769794209818133)
     )
 })
@@ -51,7 +51,6 @@ test_that("weighted average context works", {
 test_that("context distance works", {
     expect_that(
         context.distance(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1)
         ),
@@ -62,22 +61,16 @@ test_that("context distance works", {
 test_that("estimate trust works", {
     expect_that(
         estimate.trust(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
-            c(0.7, 0.5, 0.5, 0.7),
-            1,
             0.1
         ),
         equals(0.1167438402791883)
     )
     expect_that(
         estimate.trust(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
-            c(0.7, 0.5, 0.5, 0.7),
-            1,
             -0.1
         ),
         equals(-0.09330239773694914)
@@ -87,10 +80,8 @@ test_that("estimate trust works", {
 test_that("delta works", {
     expect_that(
         delta(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
-            1,
             T
         ),
         equals(c(0.029999999999999992, 0.04000000000000001, 0.2, 0.04))
@@ -102,15 +93,15 @@ test_that("weighted trust works", {
     b <- 3
     c <- 2
     expect_that(
-        weighted.trust(0.1, a, b, c, 0.3, 0.3, 0.8),
+        weighted.trust(0.1, a, b, c),
         equals(0.03)
     )
     expect_that(
-        weighted.trust(0.1, b, c, a, 0.3, 0.3, 0.8),
+        weighted.trust(0.1, b, c, a),
         equals(0.03)
     )
     expect_that(
-        weighted.trust(0.1, c, a, a, 0.3, 0.3, 0.8),
+        weighted.trust(0.1, c, a, a),
         equals(0.08)
     )
 })
@@ -119,11 +110,8 @@ test_that("direct trust works", {
     expect_that(
         direct.trust(
             0.1,
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
-            c(0.3, 0.5, 0.6, 0.1),
-            0.95,
-            0.8
+            c(0.3, 0.5, 0.6, 0.1)
         ),
         equals(0.09774097906001301)
     )
@@ -134,12 +122,9 @@ test_that("indirect trust works", {
         indirect.trust(
             0.1,
             0.1,
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
-            c(0.3, 0.5, 0.6, 0.1),
-            0.95,
-            0.8
+            c(0.3, 0.5, 0.6, 0.1)
         ),
         equals(0.009774097906001301)
     )
@@ -148,11 +133,8 @@ test_that("indirect trust works", {
 test_that("omega works", {
     expect_that(
         omega(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
-            c(0.3, 0.5, 0.6, 0.1),
-            0.95,
-            0.8
+            c(0.3, 0.5, 0.6, 0.1)
         ),
         equals(0.9774097906001301)
     )
@@ -163,11 +145,8 @@ test_that("trend of trust works", {
         trend.of.trust(
             0.1,
             0.1,
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
-            c(0.3, 0.5, 0.6, 0.1),
-            0.95,
-            0.8
+            c(0.3, 0.5, 0.6, 0.1)
         ),
         equals(0.0022590209399869915)
     )
@@ -176,30 +155,20 @@ test_that("trend of trust works", {
 test_that("reputation combination works", {
     expect_that(
         reputation.combination(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
             0.1,
-            0.1,
-            0.8,
-            0.95,
-            0.8,
             0.1
         ),
-        equals(0.1775286)
+        equals(0.1775989458)
     )
     expect_that(
         reputation.combination(
-            c(0.3, 0.2, 0.4, 0.1),
             c(0.2, 0.3, 0.1, 0.5),
             c(0.3, 0.5, 0.6, 0.1),
             0.1,
-            -0.1,
-            0.8,
-            0.95,
-            0.8,
-            0.1
+            -0.1
         ),
-        equals(0.08656811)
+        equals(0.08638687)
     )
 })

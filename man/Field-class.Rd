@@ -13,11 +13,14 @@ This class is a field containing the base stations and their signals
 \describe{
 \item{\code{get.tile(location)}}{Get the tile at the location if there is one, otherwise NA}
 
+\item{\code{shape()}}{Get the shape of the field}
+
 \item{\code{size()}}{Get the size of the field}
 }}
 
 \examples{
-Field(c(BaseStation(1, 1), BaseStation(2, 2)))
+Field()
+Field(300, 300)
 }
 \keyword{Base}
 \keyword{Map}

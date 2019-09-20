@@ -9,6 +9,17 @@
 This class defines the base stations within the trust model, these are
 essentially gateways.
 }
+\section{Methods}{
+
+\describe{
+\item{\code{add.neighbour(base.station)}}{Add a new neighbouring base station to this}
+
+\item{\code{connect(device)}}{Connect to a device}
+
+\item{\code{disconnect(device)}}{Disconnect from a device}
+
+\item{\code{tabulate.device(device, prev.base.station, hops)}}{Update the routing table on the given device}
+}}
 
 \examples{
 BaseStation(1, 1)

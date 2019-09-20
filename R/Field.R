@@ -31,7 +31,8 @@ Tile <- setRefClass(
 #' @export Field
 #' @exportClass Field
 #' @examples
-#' Field(c(BaseStation(1, 1), BaseStation(2, 2)))
+#' Field()
+#' Field(300, 300)
 
 Field <- setRefClass(
     "Field",
@@ -40,7 +41,8 @@ Field <- setRefClass(
     ),
 
     methods = list(
-        initialize = function(base.stations, width=500, height=500) {
+        initialize = function(width=500, height=500) {
+            base.stations <- place.base.stations(width, height)
             tiles <<- list()
             cat("Creating field...\n")
             for (i in 1:width) {
@@ -65,6 +67,7 @@ Field <- setRefClass(
         },
 
         shape = function() {
+            "Get the shape of the field"
             return (c(length(tiles), length(tiles[[1]])))
         },
 
@@ -78,8 +81,19 @@ Field <- setRefClass(
     )
 )
 
-place.basestations = function(width, height)
+
+# Place the base stations on a rectangle such that the signals cover the
+# entirety of the rectangle
+place.base.stations = function(width, height)
 {
     gap <- sqrt(2 * 100**2) / 2
-    base.stations <- rep()
+    base.stations <- list()
+
+    for (i in seq(1, width, gap)) {
+        for (j in seq(1, height, gap)) {
+            base.stations[[length(base.stations) + 1]] <- BaseStation(round(i), round(j))
+        }
+    }
+
+    return (base.stations)
 }

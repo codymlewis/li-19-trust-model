@@ -55,23 +55,29 @@ compute.trust <- function(trust, distrust, unknown)
 
 
 # Find the weighted average of the context values (given a vector of one of the 4)
-weighted.avg.context <- function(theta, contexts)
+weighted.avg.context <- function(contexts)
 {
     context.latest <- tail(contexts, 1)
-    factor.forget <- theta**abs(context.latest - head(contexts, -1))
+    factor.forget <- Params$theta**abs(context.latest - head(contexts, -1))
     return ((context.latest + sum(factor.forget * head(contexts, -1))) / (1 + sum(factor.forget)))
 }
 
 
 # Find the distance between the target context, and the weighted context
-context.distance <- function(weights, context.target, context.weighted)
+context.distance <- function(context.target, context.weighted)
 {
-    return (sqrt(sum(weights * (context.target - context.weighted)**2)))
+    return (
+        sqrt(
+            sum(
+                Params$context.weights * (context.target - context.weighted)**2
+            )
+        )
+    )
 }
 
 
 # Estimate how trusted a node will be for the target context
-estimate.trust <- function(weights, context.target, context.weighted, eta, impact.factor, trust.current)
+estimate.trust <- function(context.target, context.weighted, trust.current)
 {
     if (trust.current <= 0) {
         return (
@@ -79,12 +85,12 @@ estimate.trust <- function(weights, context.target, context.weighted, eta, impac
                 -1,
                 trust.current *
                 prod(
-                    2 - eta[[3]] **
-                    delta(weights, context.target, context.weighted, impact.factor, context.target > context.weighted)
+                    2 - Params$eta[[4]] **
+                    delta(context.target, context.weighted, context.target > context.weighted)
                 ) *
                 prod(
-                    eta[[4]] **
-                    delta(weights, context.target, context.weighted, impact.factor, context.target < context.weighted)
+                    Params$eta[[5]] **
+                    delta(context.target, context.weighted, context.target < context.weighted)
                 )
             )
         )
@@ -94,12 +100,12 @@ estimate.trust <- function(weights, context.target, context.weighted, eta, impac
             1,
             trust.current *
             prod(
-                eta[[1]] **
-                delta(weights, context.target, context.weighted, impact.factor, context.target > context.weighted)
+                Params$eta[[2]] **
+                delta(context.target, context.weighted, context.target > context.weighted)
             ) *
             prod(
-                2 - eta[[2]] **
-                delta(weights, context.target, context.weighted, impact.factor, context.target < context.weighted)
+                2 - Params$eta[[3]] **
+                delta(context.target, context.weighted, context.target < context.weighted)
             )
         )
     )
@@ -107,17 +113,19 @@ estimate.trust <- function(weights, context.target, context.weighted, eta, impac
 
 
 # A function used within the trust estimation
-delta <- function(weights, context.target, context.weighted, impact.factor, cond)
+delta <- function(context.target, context.weighted, cond)
 {
     return (
-        (weights[cond] * abs(context.target[cond] - context.weighted[cond])) / impact.factor
+        (Params$context.weights[cond] *
+         abs(context.target[cond] - context.weighted[cond])) /
+        Params$impact.factor
     )
 }
 
 
 
 # Calculate a weighted trust
-weighted.trust <- function(trust.estimate, trust, distrust, unknown, alpha, beta, gamma)
+weighted.trust <- function(trust.estimate, trust, distrust, unknown)
 {
     prob.trust <- compute.probability(trust, distrust, unknown)
     prob.distrust <- compute.probability(distrust, trust, unknown)
@@ -126,11 +134,11 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown, alpha, beta
     return (
         `if`(
             prob.trust > max(prob.unknown, prob.distrust),
-            alpha,
+            Params$alpha,
             `if`(
                 prob.unknown >= max(prob.trust, prob.distrust) && prob.unknown != prob.distrust,
-                beta,
-                gamma
+                Params$beta,
+                Params$gamma
             )
         ) * trust.estimate)
 }
@@ -138,43 +146,49 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown, alpha, beta
 
 
 # Calculate the direct trust
-direct.trust <- function(trusts, weights, context.target, context.weighted, eta, delta)
+direct.trust <- function(trusts, context.target, context.weighted)
 {
-    return (sum(omega(weights, context.weighted, context.target, eta, delta) * trusts))
+    return (sum(omega(context.weighted, context.target) * trusts))
 }
 
 
 
 # Calculate the indirect trust
-indirect.trust <- function(trusts, reputations, weights, context.target, context.weighted, context.cached, eta, delta)
+indirect.trust <- function(trusts, reputations, context.target, context.weighted, context.cached)
 {
-    omega.weighted <- omega(weights, context.weighted, context.target, eta, delta)
-    omega.cached <- omega(weights, context.cached, context.target, eta, delta)
-    return ((sum(omega.weighted * omega.cached * reputations * trusts)) / sum(omega.weighted))
+    omega.weighted <- omega(context.weighted, context.target)
+    omega.cached <- omega(context.cached, context.target)
+    return (
+        sum(omega.weighted * omega.cached * reputations * trusts) /
+            sum(omega.weighted)
+    )
 }
 
 
 # A function used within the indirect and direct trust calculations
-omega <- function(weights, context.weighted, context.target, eta, delta)
+omega <- function(context.weighted, context.target)
 {
-    return (eta ** (context.distance(weights, context.weighted, context.target) / delta))
+    return (
+        Params$eta[[1]] ** (
+            context.distance(context.weighted, context.target) / Params$delta
+        )
+    )
 }
 
 
 # Update the amounts of transactions that the service provider has performed
 # and classifying it
 update.performance <- function(service.provider, trust.direct0, trust.direct1, trust.indirect0, trust.indirect1,
-                               weights, context.indirect0, context.indirect1, context.direct0, context.direct1,
-                               eta, delta, trust.threshold)
+                               context.indirect0, context.indirect1, context.direct0, context.direct1)
 {
-    trend.indirect <- trend.of.trust(trust.indirect0, trust.indirect1, weights, context.indirect0, context.indirect1, eta, delta)
-    trend.direct <- trend.of.trust(trust.direct0, trust.direct1, weights, context.direct0, context.direct1, eta, delta)
+    trend.indirect <- trend.of.trust(trust.indirect0, trust.indirect1, context.indirect0, context.indirect1)
+    trend.direct <- trend.of.trust(trust.direct0, trust.direct1, context.direct0, context.direct1)
     trends.diff <- abs(trend.direct - trend.indirect)
     trends.max <- max(abs(trend.direct), abs(trend.indirect))
 
     if (trends.diff >= 0 && trends.diff < trends.max) {
         service.provider$trust.increment()
-    } else if (trends.diff >= trends.max && trends.diff <= trust.threshold) {
+    } else if (trends.diff >= trends.max && trends.diff <= Params$trust.rep.threshold) {
         service.provider$unknown.increment()
     } else {
         service.provider$distrust.increment()
@@ -183,27 +197,33 @@ update.performance <- function(service.provider, trust.direct0, trust.direct1, t
 
 
 # Calculate the expected value of change in the trust
-trend.of.trust <- function(trust0, trust1, weights, context0, context1, eta, delta)
+trend.of.trust <- function(trust0, trust1, context0, context1)
 {
-    return (trust1 - eta ** (context.distance(weights, context1, context0) / delta) * trust0)
+    return (
+        trust1 -
+            Params$eta[[1]] ** (context.distance(context1, context0) / Params$delta)
+        * trust0
+    )
 }
 
 
 # Calculate a new reputation value for a service provider
-reputation.combination <- function(weights, context.old, context.target,
-                                   reputation.old, reputation, theta, eta,
-                                   delta, rho)
+reputation.combination <- function(context.old, context.target, reputation.old, reputation)
 {
-    context.new <- weighted.avg.context(theta, c(context.old, context.target))  # apply? for each of the 4
-    omega.new.old <- omega(weights, context.new, context.old, eta, delta)
-    omega.new.target <- omega(weights, context.new, context.target, eta, delta)
+    context.new <- apply(
+        matrix(c(context.old, context.target), ncol=2),
+        1,
+        weighted.avg.context
+    )
+    omega.new.old <- omega(context.new, context.old)
+    omega.new.target <- omega(context.new, context.target)
     return (
         `if`(
             reputation.old * reputation > 0,
             omega.new.old * reputation.old + omega.new.target *
-                rho ** (omega.new.old * abs(reputation.old)) * reputation,
+                Params$rho ** (omega.new.old * abs(reputation.old)) * reputation,
             omega.new.old * reputation.old + omega.new.target *
-                rho ** (1 - omega.new.old * abs(reputation.old)) * reputation
+                Params$rho ** (1 - omega.new.old * abs(reputation.old)) * reputation
         )
     )
 }

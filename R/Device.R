@@ -11,28 +11,28 @@ Device <- setRefClass(
         trust="numeric",
         distrust="numeric",
         unknown="numeric",
-        domain="character"
+        domain="numeric"
     ),
 
     methods = list(
-        initialize = function(id, map, no.contacts=200) {
+        initialize = function(id, map) {
             id <<- id
             trust <<- 0
             distrust <<- 0
             unknown <<- 0
-            contacts <<- sample(1:no.contacts, round(runif(1, min=1, max=100)))
+            contacts <<- sample(1:Params$number.nodes, round(runif(1, min=1, max=100)))
             location <<- round(runif(2, min=0, max=(map$size() - 1)))
             map$get.tile(location)$add.device(id, .self)
             velocity <<- runif(1, min=0, max=10)
             current.goal <<- round(runif(2, min=0, max=(map.size - 1)))
             if (round(runif(1)) == 1) {
-                domain <<- "a"
+                domain <<- AIR
             } else {
                 domain <<- map[[location[[1]]]][[location[[2]]]]$terrain
             }
         },
 
-        trust.increment = function() {
+        trust.increment = function() {  # Should actually be storing this on each contact
             trust <<- trust + 1
         },
 
@@ -58,7 +58,7 @@ Device <- setRefClass(
                         loc <- c(i, j)
                         if (!(all(loc %in% location)) && !is.na(tile)) {
                             cost <- `if`(
-                                domain == "a",
+                                domain == AIR,
                                 1,
                                 `if`(
                                     domain == tile$terrain,
@@ -86,7 +86,7 @@ Device <- setRefClass(
             # TODO: update routing tables
         },
 
-        communicate = function(map, device.loc) {
+        communicate = function(map, device.loc) {  # Have device loc matrix
             "Communicate with a random contact"
             id.other <- sample(contacts, 1)
             if (euc.dist(location, device.loc[id.other,]) < 100) {
