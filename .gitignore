@@ -69,3 +69,4 @@ tags
 *.jpg
 *.pdf
 tags
+.Rd2pdf*

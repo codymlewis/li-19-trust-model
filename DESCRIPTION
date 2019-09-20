@@ -19,3 +19,11 @@ Suggests:
     testthat (>= 2.1.0)
 LinkingTo: 
     Rcpp
+Collate: 
+    'Params.R'
+    'BaseStation.R'
+    'Functions.R'
+    'Device.R'
+    'Field.R'
+    'TrustModel.R'
+    'li19trustmodel-package.R'

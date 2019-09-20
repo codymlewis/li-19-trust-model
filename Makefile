@@ -4,6 +4,9 @@ PKGSRC  := $(shell basename `pwd`)
 
 all: clean atts docs build install
 
+new-test:
+	R -e "usethis::use_test('$(name)')"
+
 test:
 	R -e "devtools::test()"
 
@@ -27,10 +30,12 @@ build:
 atts:
 	R -e "Rcpp::compileAttributes()"
 
+ref:
+	R CMD Rd2pdf .
+
 install:
 	R -e "devtools::install()"
 
 clean:
 	cd ..;\
 	$(RM) -r $(PKGNAME).Rcheck/
-

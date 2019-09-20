@@ -1,3 +1,6 @@
+#' @include Params.R
+#' @include Functions.R
+
 Tile <- setRefClass(
     "Tile",
     fields = list(
@@ -65,6 +68,7 @@ Field <- setRefClass(
                         i, width, prefix=sprintf("Column %d of %d", i, width)
                 )
             }
+            grid.connect(tiles, base.stations)
         },
 
         size = function() {
@@ -111,10 +115,22 @@ compute.gap <- function(radius)
 }
 
 
-grid.connect <- function(map, base.stations)
+grid.connect <- function(tiles, base.stations)
 {
     gap <- compute.gap(Params$signal.radius)
     for (base.station in base.stations) {
+        cur.loc <- base.station$location
+        other.station <- tile$get.tile(cur.loc - c(gap, 0))
+        check.and.add.neighbour(base.station, other.station)
+        other.station <- tiles$get.tile(cur.loc - c(0, gap))
+        check.and.add.neighbour(base.station, other.station)
+    }
+}
 
+
+check.and.add.neighbour <- function(base.station, other.station)
+{
+    if (!is.na(other.station)) {
+        base.station$add.neighbour(other.station)
     }
 }

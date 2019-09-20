@@ -160,7 +160,7 @@ test_that("reputation combination works", {
             0.1,
             0.1
         ),
-        equals(0.1775989458)
+        equals(0.1775988542)
     )
     expect_that(
         reputation.combination(

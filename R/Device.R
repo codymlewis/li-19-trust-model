@@ -1,3 +1,6 @@
+#' @include Params.R
+#' @include Functions.R
+
 Device <- setRefClass(
     "Device",
     fields = list(
@@ -46,6 +49,9 @@ Device <- setRefClass(
 
         move = function(time.change, map) {
             "Move towards the current goal"
+            for (signal in map$get.tile(location)$signals) {
+                signal$disconnect(.self)
+            }
             movement.amount <- round(velocity * time.change)
             movement <- `if`(movement.amount > 0, 1:movement.amount, NULL)
             for (m in movement) {
@@ -79,21 +85,28 @@ Device <- setRefClass(
                 location <<- best.loc
                 best.tile$add.device(id, .self)
             }
+            for (signal in map$get.tile(location)$signals) {
+                signal$connect(.self)
+            }
             velocity <<- max(0, velocity + rnorm(1))
             if (all(location %in% current.goal)) {
                 current.goal <<- round(runif(2, min=0, max=(map$size() - 1)))
             }
-            # TODO: update routing tables
         },
 
-        communicate = function(map, device.loc) {  # Have device loc matrix
+        communicate = function(map) {
             "Communicate with a random contact"
             id.other <- sample(contacts, 1)
-            if (euc.dist(location, device.loc[id.other,]) < 100) {
-                # neighbour communication
-            } else {
-                # routed communication
+            this.tile <- map$get.tile(location)
+            best.signal <- 1
+            for (i in 1:length(this.tile$signals)) {
+                if (this.tile$signals[[i]]$table$hops[[id.other]] <=
+                    this.tile$signals[[best.signal]]$hops[[id.other]]) {
+                    best.signal <- i
+                }
             }
+            other.device <- this.tile$signals[[best.signal]]$find.device(id.other)
+            # Perform transaction
         }
     )
 )
