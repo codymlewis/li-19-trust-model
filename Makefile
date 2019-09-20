@@ -7,6 +7,17 @@ all: clean atts docs build install
 test:
 	R -e "devtools::test()"
 
+deps:
+	R -e "if (!require(devtools)) { \
+	r = getOption('repos'); \
+	r['CRAN'] = 'https://cran.csiro.au/'; \
+	options(repos = r); \
+	rm(r); \
+	install.packages('devtools'); \
+	}"
+
+ci-test: deps test
+
 docs:
 	R -e "devtools::document()"
 
@@ -22,3 +33,4 @@ install:
 clean:
 	cd ..;\
 	$(RM) -r $(PKGNAME).Rcheck/
+

@@ -5,6 +5,7 @@ AIR <- 2
 # The parameters for the trust model
 Params <- list(
     number.nodes = 200,
+    signal.radius = 100,
     max.number.contacts = 100,
     init.reputation = 0.01,
     trust.new.contact = 0,

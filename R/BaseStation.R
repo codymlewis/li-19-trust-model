@@ -30,6 +30,7 @@ BaseStation <- setRefClass(
 
         add.neighbour = function(base.station) {
             "Add a new neighbouring base station to this"
+            # TODO: Make this symmetric
             neighbours[[length(neighbours) + 1]] <<- base.station
         },
 

@@ -8,8 +8,15 @@ System for IoT Applications with Multiple Domains
 
 - R
 
+## Set-up
+
+```
+make deps
+make all
+```
+
 ## Running
 
 ```
-cd src && ./ConsoleInterface
+./Interface
 ```

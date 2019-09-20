@@ -3,15 +3,21 @@ Tile <- setRefClass(
     fields = list(
         objects = "list",
         signals = "list",
-        terrain = "numeric"
+        terrain = "numeric",
+        base.station = "BaseStation"
     ),
     methods = list(
         initialize = function(terrain) {
             terrain <<- terrain
+            base.station <<- NA
         },
 
         add.device = function(id, device) {
             objects[[id]] <<- device
+        },
+
+        add.base.station = function(base.station) {
+            base.station <<- base.station
         },
 
         rm.device = function(id) {
@@ -73,7 +79,7 @@ Field <- setRefClass(
 
         get.tile = function(location) {
             "Get the tile at the location if there is one, otherwise NA"
-            if (all(location <= shape()) && all(location >= c(0, 0))) {
+            if (all(location <= shape()) && all(location > c(0, 0))) {
                 return (tile[[location[[1]]]][[location[[2]]]])
             }
             return (NA)
@@ -84,16 +90,31 @@ Field <- setRefClass(
 
 # Place the base stations on a rectangle such that the signals cover the
 # entirety of the rectangle
-place.base.stations = function(width, height)
+place.base.stations <- function(width, height)
 {
-    gap <- sqrt(2 * 100**2) / 2
+    gap <- compute.gap(Params$signal.radius)
     base.stations <- list()
 
     for (i in seq(1, width, gap)) {
         for (j in seq(1, height, gap)) {
-            base.stations[[length(base.stations) + 1]] <- BaseStation(round(i), round(j))
+            base.stations[[length(base.stations) + 1]] <- BaseStation(i, j)
         }
     }
 
     return (base.stations)
+}
+
+
+compute.gap <- function(radius)
+{
+    return (round(sqrt(2 * radius**2) / 2))
+}
+
+
+grid.connect <- function(map, base.stations)
+{
+    gap <- compute.gap(Params$signal.radius)
+    for (base.station in base.stations) {
+
+    }
 }
