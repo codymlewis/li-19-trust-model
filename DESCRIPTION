@@ -21,8 +21,11 @@ LinkingTo:
 Collate:
     'Params.R'
     'BaseStation.R'
+    'TrustModel.R'
     'Functions.R'
     'Device.R'
     'Field.R'
-    'TrustModel.R'
+    'Observation.R'
+    'ServiceProvider.R'
+    'Simulation.R'
     'li19trustmodel-package.R'

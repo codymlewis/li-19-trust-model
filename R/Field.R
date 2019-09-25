@@ -3,16 +3,18 @@
 
 Tile <- setRefClass(
     "Tile",
+
     fields = list(
         objects = "list",
         signals = "list",
         terrain = "numeric",
-        base.station = "BaseStation"
+        base.station = "list"
     ),
+
     methods = list(
         initialize = function(terrain) {
             terrain <<- terrain
-            base.station <<- NA
+            base.station <<- list()
         },
 
         add.device = function(id, device) {
@@ -20,7 +22,11 @@ Tile <- setRefClass(
         },
 
         add.base.station = function(base.station) {
-            base.station <<- base.station
+            base.station[[1]] <<- base.station
+        },
+
+        get.base.station = function() {
+            return (base.station[[1]])
         },
 
         rm.device = function(id) {
@@ -41,34 +47,44 @@ Tile <- setRefClass(
 #' @exportClass Field
 #' @examples
 #' Field()
-#' Field(300, 300)
+#' Field(read.csv("map.csv"))
 
 Field <- setRefClass(
     "Field",
+
     fields = list(
         tiles = "list"
     ),
 
     methods = list(
-        initialize = function(width=500, height=500) {
-            base.stations <- place.base.stations(width, height)
+        initialize = function(data=NULL) {
+            base.stations <- place.base.stations(Params$map.width, Params$map.height)
             tiles <<- list()
             cat("Creating field...\n")
-            for (i in 1:width) {
+            for (i in 1:Params$map.width) {
                 tiles[[i]] <<- list()
-                for (j in 1:height) {
-                    tiles[[i]][[j]] <<- Tile(`if`(round(runif(1)), 1, 0))
+                for (j in 1:Params$map.height) {
+                    tiles[[i]][[j]] <<- Tile(
+                        `if`(
+                            !all(is.null(data)),
+                            data[[i]][[j]],
+                            `if`(round(runif(1)), 1, 0)
+                        )
+                    )
                     for (base.station in base.stations) {
                         if (euc.dist(base.station$location, c(i, j)) < 100) {
                             tiles[[i]][[j]]$add.signal(base.station)
                         }
+                        if (all(base.station$location == c(i, j))) {
+                            tiles[[i]][[j]]$add.base.station(base.station)
+                        }
                     }
                 }
                 cat.progress(
-                        i, width, prefix=sprintf("Column %d of %d", i, width)
+                    i, Params$map.width, prefix=sprintf("Column %d of %d", i, Params$map.width)
                 )
             }
-            grid.connect(tiles, base.stations)
+            grid.connect(.self, base.stations)
         },
 
         size = function() {
@@ -83,10 +99,12 @@ Field <- setRefClass(
 
         get.tile = function(location) {
             "Get the tile at the location if there is one, otherwise NA"
+            print(shape())
             if (all(location <= shape()) && all(location > c(0, 0))) {
-                return (tile[[location[[1]]]][[location[[2]]]])
+                return (list(tiles[[location[[1]]]][[location[[2]]]]))
             }
-            return (NA)
+            print("here")
+            return (list())
         }
     )
 )
@@ -115,22 +133,26 @@ compute.gap <- function(radius)
 }
 
 
-grid.connect <- function(tiles, base.stations)
+grid.connect <- function(field, base.stations)
 {
     gap <- compute.gap(Params$signal.radius)
     for (base.station in base.stations) {
         cur.loc <- base.station$location
-        other.station <- tile$get.tile(cur.loc - c(gap, 0))
-        check.and.add.neighbour(base.station, other.station)
-        other.station <- tiles$get.tile(cur.loc - c(0, gap))
-        check.and.add.neighbour(base.station, other.station)
+        other.tile <- field$get.tile(cur.loc - c(gap, 0))
+        if (length(other.tile)) {
+            other.station <- other.tile[[1]]$get.base.station()
+            check.and.add.neighbour(base.station, other.station)
+        }
+        other.tile <- field$get.tile(cur.loc - c(0, gap))
+        if (length(other.tile)) {
+            other.station <- other.tile[[1]]$get.base.station()
+            check.and.add.neighbour(base.station, other.station)
+        }
     }
 }
 
 
 check.and.add.neighbour <- function(base.station, other.station)
 {
-    if (!is.na(other.station)) {
-        base.station$add.neighbour(other.station)
-    }
+    base.station$add.neighbour(other.station)
 }

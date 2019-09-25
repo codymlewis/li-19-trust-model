@@ -26,6 +26,7 @@ essentially gateways.
 }}
 
 \examples{
+BaseStation()
 BaseStation(1, 1)
 }
 \keyword{Base}

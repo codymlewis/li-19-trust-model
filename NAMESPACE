@@ -2,5 +2,6 @@
 
 export(BaseStation)
 export(Field)
+export(run.simulation)
 exportClasses(BaseStation)
 exportClasses(Field)

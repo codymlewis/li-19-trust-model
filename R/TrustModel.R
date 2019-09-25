@@ -176,26 +176,6 @@ omega <- function(context.weighted, context.target)
 }
 
 
-# Update the amounts of transactions that the service provider has performed
-# and classifying it
-update.performance <- function(service.provider, trust.direct0, trust.direct1, trust.indirect0, trust.indirect1,
-                               context.indirect0, context.indirect1, context.direct0, context.direct1)
-{
-    trend.indirect <- trend.of.trust(trust.indirect0, trust.indirect1, context.indirect0, context.indirect1)
-    trend.direct <- trend.of.trust(trust.direct0, trust.direct1, context.direct0, context.direct1)
-    trends.diff <- abs(trend.direct - trend.indirect)
-    trends.max <- max(abs(trend.direct), abs(trend.indirect))
-
-    if (trends.diff >= 0 && trends.diff < trends.max) {
-        service.provider$trust.increment()
-    } else if (trends.diff >= trends.max && trends.diff <= Params$trust.rep.threshold) {
-        service.provider$unknown.increment()
-    } else {
-        service.provider$distrust.increment()
-    }
-}
-
-
 # Calculate the expected value of change in the trust
 trend.of.trust <- function(trust0, trust1, context0, context1)
 {

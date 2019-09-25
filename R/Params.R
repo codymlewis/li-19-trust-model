@@ -5,7 +5,9 @@ AIR <- 2
 # The parameters for the trust model
 Params <- list(
     number.nodes = 200,
+    number.service.providers = 1,
     signal.radius = 100,
+    dev.signal.radius = 14,
     max.number.contacts = 100,
     init.reputation = 0.01,
     trust.new.contact = 0,
@@ -13,6 +15,11 @@ Params <- list(
     trend.threshold = 0.01,
     trust.rep.adj.range = 0.001,
     sp.ground.trust = 1,
+    max.capability = 100,
+    map.width = 500,
+    map.height = 500,
+    max.velocity = 10,
+    time.now = 0,
     context.weights = c(0.3, 0.2, 0.4, 0.1),
     eta = c(0.95, 0.7, 0.5, 0.5, 0.7),
     alpha = 0.3,

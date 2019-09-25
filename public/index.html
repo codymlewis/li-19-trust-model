@@ -8,7 +8,8 @@
     <body>
         <h1 style="text-align:center">Create Map</h1>
         <canvas style="margin-left:5%; margin-right:5%" width=1600 height=800 id="map"></canvas>
-        <button id="download" style="margin-left:5%; margin-right:5%" >Download CSV</button>
+        <button id="tocpp" style="margin-left:5%; margin-right:5%" >To C++</button>
+        <button id="tocsv" style="margin-left:5%; margin-right:5%" >To CSV</button>
     </body>
     <script>
         var mapCanvas = document.getElementById('map');
@@ -60,9 +61,20 @@
                 }
                 return file + "\treturn v;\n}";
             }
+
+            toCSV() {
+                var file = "";
+                for (var i in this.tiles) {
+                    for (var j in this.tiles[i]) {
+                        file += `${this.tiles[i][j]},`;
+                    }
+                    file = file.slice(0, -1) + "\n";
+                }
+                return file.slice(0, -1);
+            }
         }
 
-        var map = new Map(600, 500);
+        var map = new Map(500, 500);
 
         window.onload = () => {
             drawMap();
@@ -138,8 +150,12 @@
             }
         }, false);
 
-        document.getElementById("download").addEventListener("click", () => {
+        document.getElementById("tocpp").addEventListener("click", () => {
             var fileBlob = new Blob([map.toFile()], { type: 'text/plain' })
+            window.location.href = window.URL.createObjectURL(fileBlob);
+        })
+        document.getElementById("tocsv").addEventListener("click", () => {
+            var fileBlob = new Blob([map.toCSV()], { type: 'text/plain' })
             window.location.href = window.URL.createObjectURL(fileBlob);
         })
     </script>

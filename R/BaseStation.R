@@ -7,10 +7,12 @@
 #' @export BaseStation
 #' @exportClass BaseStation
 #' @examples
+#' BaseStation()
 #' BaseStation(1, 1)
 
 BaseStation <- setRefClass(
     "BaseStation",
+
     fields = list(
         location = "numeric",
         table = "list",

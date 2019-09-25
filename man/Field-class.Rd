@@ -20,7 +20,7 @@ This class is a field containing the base stations and their signals
 
 \examples{
 Field()
-Field(300, 300)
+Field(read.csv("map.csv"))
 }
 \keyword{Base}
 \keyword{Map}
