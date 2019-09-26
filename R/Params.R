@@ -19,7 +19,7 @@ Params <- list(
     map.width = 500,
     map.height = 500,
     max.velocity = 10,
-    time.now = 0,
+    time.now = 1,
     context.weights = c(0.3, 0.2, 0.4, 0.1),
     eta = c(0.95, 0.7, 0.5, 0.5, 0.7),
     alpha = 0.3,

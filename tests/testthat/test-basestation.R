@@ -1,0 +1,27 @@
+test_that("add neighbour works", {
+    b1 <- BaseStation(1, 1)
+    b2 <- BaseStation(2, 2)
+    b1$add.neighbour(b2)
+    expect_equal(c(1, 1), b2$neighbours[[1]]$location)
+    expect_equal(c(2, 2), b1$neighbours[[1]]$location)
+})
+
+
+test_that("routing works", {
+    Params$number.nodes <- 1
+    b1 <- BaseStation(1, 1)
+    b2 <- BaseStation(2, 2)
+    b3 <- BaseStation(3, 3)
+    b1$add.neighbour(b2)
+    b2$add.neighbour(b3)
+    d <- Device(1, NULL)
+    b1$connect(d)
+    expect_equal(b1$table$hops[[d$id]], 0)
+    expect_equal(b2$table$hops[[d$id]], 1)
+    expect_equal(b3$find.device(d$id)$id, d$id)
+    b1$disconnect(d)
+    expect_equal(b1$table$hops[[d$id]], Inf)
+    b2$connect(d)
+    expect_equal(b1$table$hops[[d$id]], 1)
+    expect_equal(b3$find.device(d$id)$id, d$id)
+})

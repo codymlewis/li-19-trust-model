@@ -4,7 +4,8 @@
 \alias{run.simulation}
 \title{Run the simulation}
 \usage{
-run.simulation(total.time)
+run.simulation(total.time, map.filename = system.file("extdata",
+  "map.csv", package = "li19trustmodel"))
 }
 \description{
 Simulate the trust model and the mobile network and iterate for an amount

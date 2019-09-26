@@ -1,15 +1,3 @@
-#' A Base Station Class
-#'
-#' This class defines the base stations within the trust model, these are
-#' essentially gateways.
-#' @keywords Base Station Gateway
-#' @include Params.R
-#' @export BaseStation
-#' @exportClass BaseStation
-#' @examples
-#' BaseStation()
-#' BaseStation(1, 1)
-
 BaseStation <- setRefClass(
     "BaseStation",
 
@@ -24,7 +12,7 @@ BaseStation <- setRefClass(
         initialize = function(x=1, y=1) {
             location <<- c(x, y)
             table <<- list(
-                next.hop = c(list(), rep(NA, Params$number.nodes)),
+                next.hop = c(list(), rep(NULL, Params$number.nodes)),
                 hops = rep(Inf, Params$number.nodes)
             )
             neighbours <<- list()
@@ -50,11 +38,12 @@ BaseStation <- setRefClass(
             for (neighbour in neighbours) {
                 neighbour$tabulate.device(device, .self, 1)
             }
+            updated <<- FALSE
         },
 
         disconnect = function(device) {
             "Disconnect from a device"
-            table$next.hop[[device$id]] <<- NA
+            table$next.hop[[device$id]] <<- NULL
             table$hops[[device$id]] <<- Inf
         },
 
@@ -62,6 +51,8 @@ BaseStation <- setRefClass(
             "Update the routing table on the given device"
             if (table$hops[[device$id]] == 0 || (updated && table$hops[[device$id]] < hops)) {
                 true.hops <- table$hops[[device$id]]
+            } else if (updated) {
+                return ()
             } else {
                 true.hops <- hops
                 table$next.hop[[device$id]] <<- prev.base.station
@@ -72,6 +63,7 @@ BaseStation <- setRefClass(
             for (neighbour in neighbours) {
                 neighbour$tabulate.device(device, .self, true.hops + 1)
             }
+            updated <<- FALSE
         },
 
         find.device = function(dev.id) {

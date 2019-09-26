@@ -57,7 +57,7 @@ Field <- setRefClass(
     ),
 
     methods = list(
-        initialize = function(data=NULL) {
+        initialize = function(data=NULL, verbose=F) {
             base.stations <- place.base.stations(Params$map.width, Params$map.height)
             tiles <<- list()
             cat("Creating field...\n")
@@ -80,9 +80,13 @@ Field <- setRefClass(
                         }
                     }
                 }
-                cat.progress(
-                    i, Params$map.width, prefix=sprintf("Column %d of %d", i, Params$map.width)
-                )
+                if (verbose) {
+                    cat.progress(
+                        i,
+                        Params$map.width,
+                        prefix=sprintf("Column %d of %d", i, Params$map.width)
+                    )
+                }
             }
             grid.connect(.self, base.stations)
         },
@@ -94,7 +98,7 @@ Field <- setRefClass(
 
         shape = function() {
             "Get the shape of the field"
-            return (c(length(tiles), length(tiles[[1]])))
+            return (c(length(tiles[[1]]), length(tiles)))
         },
 
         get.tile = function(location) {

@@ -2,6 +2,7 @@
 #' @include Functions.R
 #' @include TrustModel.R
 #' @include ServiceProvider.R
+#' @include Observation.R
 
 Device <- setRefClass(
     "Device",
@@ -23,49 +24,75 @@ Device <- setRefClass(
         trust.evals = "numeric",
         reputations = "numeric",
         reputations.cached = "numeric",
-        indirect.observations = "list",
+        recommendations = "list",
+        recommendations.cached = "list",
         service.provider = "ServiceProvider"
     ),
 
     methods = list(
         initialize = function(id, map) {
+            if (is.null(map)) {
+                map.size <- c(Params$map.width, Params$map.height)
+            }
             id <<- id
             set.trusts()
             contacts <<- sample(1:Params$number.nodes, round(runif(1, min=1, max=100)))
-            location <<- round(runif(2, min=0, max=(map$size() - 1)))
-            map$get.tile(location)$add.device(id, .self)
-            velocity <<- runif(1, min=0, max=Params$max.velocity)
-            current.goal <<- round(runif(2, min=0, max=(map.size - 1)))
-            if (round(runif(1)) == 1) {
-                domain <<- AIR
-            } else {
-                domain <<- map[[location[[1]]]][[location[[2]]]]$terrain
+            location <<- round(runif(2, min=1, max=map.size))
+            if (!is.null(map)) {
+                map$get.tile(location)$add.device(id, .self)
             }
-            contexts <<- c(
-                list(),
-                rep(
-                    list(rep(0, length(Params$context.weights))),
-                    Params$number.nodes
-                )
-            )
-            contexts.cached <<- c(
-                list(),
-                rep(
-                    list(rep(0, length(Params$context.weights))),
-                    Params$number.nodes
-                )
-            )
+            velocity <<- runif(1, min=0, max=Params$max.velocity)
+            current.goal <<- round(runif(2, min=1, max=map.size))
+            if (!is.null(map)) {
+                if (round(runif(1)) == 1) {
+                    domain <<- AIR
+                } else {
+                    domain <<- map[[location[[1]]]][[location[[2]]]]$terrain
+                }
+            } else {
+                domain <<- sample(c(AIR, LAND, WATER), 1)
+            }
+            contexts <<- init.contexts()
+            contexts.cached <<- init.contexts()
             trust.evals <<- rep(Params$trust.new.contact, Params$number.nodes)
             reputations <<- rep(Params$init.reputation, Params$number.nodes)
             reputations.cached <<- rep(Params$init.reputation, Params$number.nodes)
-            indirect.observations <<- list()
+            recommendations <<- init.recommendations()
+            recommendations.cached <<- init.recommendations()
+        },
+
+        init.contexts = function() {
+            return(
+                c(
+                    list(),
+                    rep(
+                        list(rep(0, length(Params$context.weights))),
+                        Params$number.nodes
+                    )
+                )
+            )
+        },
+
+        init.recommendations = function() {
+            return(
+                sapply(
+                    1:Params$number.nodes,
+                    function(i) {
+                        Observation(
+                            rep(0, length(Params$context.weights)),
+                            Params$trust.new.contact,
+                            i
+                        )
+                    }
+                )
+            )
         },
 
         set.trusts = function() {
             "Set up the trusts for the service providers in the network"
-            trust <<- rep(0, Params$number.service.provider)
-            distrust <<- rep(0, Params$number.service.provider)
-            unknown <<- rep(0, Params$number.service.provider)
+            trust <<- rep(0, Params$number.service.providers)
+            distrust <<- rep(0, Params$number.service.providers)
+            unknown <<- rep(0, Params$number.service.providers)
         },
 
         trust.increment = function(sp.id) {
@@ -80,8 +107,12 @@ Device <- setRefClass(
            unknown[[sp.id]] <<- unknown[[sp.id]] + 1
         },
 
-        recieve.observation = function(observation) {
-            indirect.observations[[length(indirect.observations)]] <<- observation
+        recieve.observation = function(sender.id, observation) {
+            "Receive a recommendation from the sender"
+            if (!is.null(recommendations[sender.id][[1]])) {
+                recommendations.cached[[sender.id]] <<- recommendations[[sender.id]]
+            }
+            recommendations[[sender.id]] <<- observation
         },
 
         move = function(time.change, map) {
@@ -144,19 +175,22 @@ Device <- setRefClass(
                 service.provider$provide.service()
             }
             # send resulting observation to all contacts
-            emit.observation()
+            emit.observation(Observation(context.target, cur.trust, id))
         },
 
-        # Update the amounts of transactions that the service provider has performed
-        # and classifying it
         update.performance = function() {
+            "Update the amounts of transactions that the service provider has
+            performed and classify it"
             trend.direct <- trend.of.trust(
                 trust.evals.cached, trust.evals, contexts.cached, contexts
             )
-            sapply(1:length(indirect.observations),
+            sapply(1:length(recommendations),
                 function(i) {
                     trend.indirect <- trend.of.trust(
-                        trust.indirect0, trust.indirect1, context.indirect0, context.indirect1
+                        recommendations.cached[[i]]$trust,
+                        recommendations[[i]]$trust,
+                        recommendations.cached[[i]]$context,
+                        recommendations[[i]]$contexts
                     )
                     trends.diff <- abs(trend.direct - trend.indirect)
                     trends.max <- max(abs(trend.direct), abs(trend.indirect))
@@ -189,8 +223,11 @@ Device <- setRefClass(
             reputations <<- reputations.new
         },
 
-        emit.observation = function() {
+        emit.observation = function(observation) {
             # send observation to all contacts
+            for (contact in contacts) {
+                contact$recieve.observation(id, observation)
+            }
         },
 
         communicate = function(map) {

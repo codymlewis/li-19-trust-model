@@ -1,6 +1,6 @@
 Package: li19trustmodel
 Title: Li 19 Trust Model
-Version: 0.0.0.9000
+Version: 0.0
 Authors@R:
     person(given = "Cody",
            family = "Lewis",
@@ -19,13 +19,14 @@ Suggests:
 LinkingTo:
     Rcpp
 Collate:
-    'Params.R'
     'BaseStation.R'
-    'TrustModel.R'
+    'Normalizers.R'
     'Functions.R'
-    'Device.R'
-    'Field.R'
+    'Params.R'
     'Observation.R'
     'ServiceProvider.R'
+    'TrustModel.R'
+    'Device.R'
+    'Field.R'
     'Simulation.R'
     'li19trustmodel-package.R'
