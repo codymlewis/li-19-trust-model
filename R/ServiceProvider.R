@@ -7,7 +7,7 @@ ServiceProvider <- setRefClass(
 
     methods = list(
         provide.service = function() {
-
+            return (TRUE)
         }
     )
 )

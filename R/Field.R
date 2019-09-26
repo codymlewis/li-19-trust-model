@@ -1,50 +1,12 @@
-#' @include Params.R
-#' @include Functions.R
-
-Tile <- setRefClass(
-    "Tile",
-
-    fields = list(
-        objects = "list",
-        signals = "list",
-        terrain = "numeric",
-        base.station = "list"
-    ),
-
-    methods = list(
-        initialize = function(terrain) {
-            terrain <<- terrain
-            base.station <<- list()
-        },
-
-        add.device = function(id, device) {
-            objects[[id]] <<- device
-        },
-
-        add.base.station = function(base.station) {
-            base.station[[1]] <<- base.station
-        },
-
-        get.base.station = function() {
-            return (base.station[[1]])
-        },
-
-        rm.device = function(id) {
-            objects[[id]] <<- NULL
-        },
-
-        add.signal = function(base.station) {
-            signals[[length(signals) + 1]] <<- base.station
-        }
-    )
-)
-
 #' A Field Class
 #'
 #' This class is a field containing the base stations and their signals
 #' @keywords Map Base Station
 #' @export Field
 #' @exportClass Field
+#' @include Params.R
+#' @include Functions.R
+#' @include Tile.R
 #' @examples
 #' Field()
 #' Field(read.csv("map.csv"))

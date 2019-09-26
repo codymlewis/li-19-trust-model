@@ -27,6 +27,7 @@ Collate:
     'ServiceProvider.R'
     'TrustModel.R'
     'Device.R'
+    'Tile.R'
     'Field.R'
     'Simulation.R'
     'li19trustmodel-package.R'
