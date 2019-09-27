@@ -3,7 +3,7 @@
 #' @include TrustModel.R
 #' @include ServiceProvider.R
 #' @include Observation.R
-#' @include Normalize.R
+#' @include Normalizers.R
 
 Device <- setRefClass(
     "Device",
@@ -179,10 +179,10 @@ Device <- setRefClass(
             update.performance()
             reputation.update()
             cur.trust <- direct.trust(
-                c(trusts.cached, trusts), normalize(context.target), context.prev
+                c(trusts.cached, trusts), normalize(context.target), context
             )
             if (abs(cur.trust) <= Params$trust.rep.adj.range) {
-                # cur.trust <- indirect.trust()
+                cur.trust <- indirect.trust()
             }
             if (cur.trust > Params$trust.rep.threshold - Params$trust.rep.adj.range) {
                 service.provider$provide.service()
@@ -190,7 +190,7 @@ Device <- setRefClass(
             if (last.rec.time < Params$time.now) {
                 # send resulting observation to all contacts
                 emit.observation(Observation(context.target, cur.trust, id))
-                last.rec.time <- Params$time.now
+                last.rec.time <<- Params$time.now
             }
         },
 
