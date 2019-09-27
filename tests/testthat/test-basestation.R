@@ -8,7 +8,7 @@ test_that("add neighbour works", {
 
 
 test_that("routing works", {
-    Params$number.nodes <- 1
+    Params$number.nodes <<- 2
     b1 <- BaseStation(1, 1)
     b2 <- BaseStation(2, 2)
     b3 <- BaseStation(3, 3)
@@ -24,4 +24,5 @@ test_that("routing works", {
     b2$connect(d)
     expect_equal(b1$table$hops[[d$id]], 1)
     expect_equal(b3$find.device(d$id)$id, d$id)
+    Params$number.nodes <<- 200
 })

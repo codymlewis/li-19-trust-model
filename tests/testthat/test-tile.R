@@ -3,6 +3,7 @@ test_that("terrain assignment works", {
 })
 
 test_that("device storing works", {
+    Params$number.nodes <<- 200
     d <- Device(1, NULL)
     t <- Tile(LAND)
     t$add.device(d)

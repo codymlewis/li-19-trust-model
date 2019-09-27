@@ -22,7 +22,9 @@ Field <- setRefClass(
         initialize = function(data=NULL, verbose=F) {
             base.stations <- place.base.stations(Params$map.width, Params$map.height)
             tiles <<- list()
-            cat("Creating field...\n")
+            if (verbose) {
+                cat("Creating field...\n")
+            }
             for (i in 1:Params$map.width) {
                 tiles[[i]] <<- list()
                 for (j in 1:Params$map.height) {
@@ -65,11 +67,9 @@ Field <- setRefClass(
 
         get.tile = function(location) {
             "Get the tile at the location if there is one, otherwise NA"
-            print(shape())
             if (all(location <= shape()) && all(location > c(0, 0))) {
                 return (list(tiles[[location[[1]]]][[location[[2]]]]))
             }
-            print("here")
             return (list())
         }
     )
@@ -90,12 +90,6 @@ place.base.stations <- function(width, height)
     }
 
     return (base.stations)
-}
-
-
-compute.gap <- function(radius)
-{
-    return (round(sqrt(2 * radius**2) / 2))
 }
 
 

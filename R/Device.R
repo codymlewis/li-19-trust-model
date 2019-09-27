@@ -3,6 +3,7 @@
 #' @include TrustModel.R
 #' @include ServiceProvider.R
 #' @include Observation.R
+#' @include Normalize.R
 
 Device <- setRefClass(
     "Device",
@@ -26,7 +27,8 @@ Device <- setRefClass(
         reputations.cached = "numeric",
         recommendations = "list",
         recommendations.cached = "list",
-        service.provider = "ServiceProvider"
+        service.provider = "ServiceProvider",
+        last.rec.time = "numeric"
     ),
 
     methods = list(
@@ -36,7 +38,10 @@ Device <- setRefClass(
             }
             id <<- id
             set.trusts()
-            contacts <<- sample(1:Params$number.nodes, round(runif(1, min=1, max=100)))
+            contacts <<- sample(
+                1:Params$number.nodes,
+                round(runif(1, min=1, max=min(Params$max.number.contacts, Params$number.nodes)))
+            )
             location <<- round(runif(2, min=1, max=map.size))
             if (!is.null(map)) {
                 map$get.tile(location)$add.device(id, .self)
@@ -59,6 +64,7 @@ Device <- setRefClass(
             reputations.cached <<- rep(Params$init.reputation, Params$number.nodes)
             recommendations <<- init.recommendations()
             recommendations.cached <<- init.recommendations()
+            last.rec.time <<- -Inf
         },
 
         init.contexts = function() {
@@ -164,18 +170,28 @@ Device <- setRefClass(
 
         transaction = function() {
             "Perform a transaction with a service provider"
-            context.target <- c()
+            context.target <- c(
+                Params$time.now,
+                capability,
+                euc.dist(location, service.provider$location),
+                velocity
+            )
             update.performance()
             reputation.update()
-            cur.trust <- direct.trust(c(trusts.cached, trusts), context.target, contexts)
+            cur.trust <- direct.trust(
+                c(trusts.cached, trusts), normalize(context.target), context.prev
+            )
             if (abs(cur.trust) <= Params$trust.rep.adj.range) {
                 # cur.trust <- indirect.trust()
             }
             if (cur.trust > Params$trust.rep.threshold - Params$trust.rep.adj.range) {
                 service.provider$provide.service()
             }
-            # send resulting observation to all contacts
-            emit.observation(Observation(context.target, cur.trust, id))
+            if (last.rec.time < Params$time.now) {
+                # send resulting observation to all contacts
+                emit.observation(Observation(context.target, cur.trust, id))
+                last.rec.time <- Params$time.now
+            }
         },
 
         update.performance = function() {
@@ -224,7 +240,7 @@ Device <- setRefClass(
         },
 
         emit.observation = function(observation) {
-            # send observation to all contacts
+            "send observation to all contacts"
             for (contact in contacts) {
                 contact$recieve.observation(id, observation)
             }

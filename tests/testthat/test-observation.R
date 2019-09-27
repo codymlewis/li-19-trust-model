@@ -15,8 +15,7 @@ test_that("Time update works", {
     id.sender <- 1
     obs <- Observation(context, trust, id.sender)
     prev.time <- obs$context[[1]]
-    prev.time.now <- Params$time.now
-    Params$time.now <- Params$time.now + 1
+    Params$time.now <<- Params$time.now + 1
     obs$update.time()
-    expect_equal(prev.time / prev.time.now, obs$context[[1]])
+    expect_equal(prev.time / Params$time.now, obs$context[[1]])
 })
