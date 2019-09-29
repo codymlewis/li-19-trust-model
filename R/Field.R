@@ -1,15 +1,6 @@
-#' A Field Class
-#'
-#' This class is a field containing the base stations and their signals
-#' @keywords Map Base Station
-#' @export Field
-#' @exportClass Field
 #' @include Params.R
 #' @include Functions.R
 #' @include Tile.R
-#' @examples
-#' Field()
-#' Field(read.csv("map.csv"))
 
 Field <- setRefClass(
     "Field",

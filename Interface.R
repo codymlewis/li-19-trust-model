@@ -4,7 +4,7 @@ library(li19trustmodel)
 
 main <- function()
 {
-    f <- Field(c(BaseStation(1, 1)))
+    run.simulation(500)
     quit("no")
 }
 

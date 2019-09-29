@@ -10,6 +10,8 @@ Tile <- setRefClass(
 
     methods = list(
         initialize = function(terrain) {
+            objects <<- list()
+            signals <<- list()
             terrain <<- terrain
             base.station <<- list()
         },

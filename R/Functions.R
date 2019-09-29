@@ -41,6 +41,6 @@ euc.dist <- function(p, q)
 # Find the gap needed for a circles to cover a square surface
 compute.gap <- function(radius)
 {
-    return (round(sqrt(2 * radius**2) / 2))
+    return (round(sqrt(2 * radius**2) * Params$gap.factor))
 }
 

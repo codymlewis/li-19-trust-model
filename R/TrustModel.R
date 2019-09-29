@@ -154,10 +154,10 @@ direct.trust <- function(trusts, context.target, context.weighted)
 
 
 # Calculate the indirect trust
-indirect.trust <- function(trusts, reputations, context.target, context.weighted, context.cached)
+indirect.trust <- function(trusts, reputations, contexts, context.weighted, context.cached)
 {
-    omega.weighted <- omega(context.weighted, context.target)
-    omega.cached <- omega(context.cached, context.target)
+    omega.weighted <- omega(context.weighted, contexts)
+    omega.cached <- omega(context.cached, contexts)
     return (
         sum(omega.weighted * omega.cached * reputations * trusts) /
             sum(omega.weighted)
@@ -170,7 +170,11 @@ omega <- function(context.weighted, context.target)
 {
     return (
         Params$eta[[1]] ** (
-            context.distance(context.weighted, context.target) / Params$delta
+            apply(
+                matrix(context.weighted, ncol=length(context.target), byrow=T),
+                1,
+                function(c) { context.distance(c, context.target) }
+            ) / Params$delta
         )
     )
 }

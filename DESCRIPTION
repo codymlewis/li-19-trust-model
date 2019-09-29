@@ -9,7 +9,8 @@ Authors@R:
 Description: Simulate The Trust Model Proposed In Context-Aware Trust
     Management System for IoT Applications with Multiple Domains
 Imports:
-    Rcpp
+    Rcpp,
+    ggplot2
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
@@ -20,14 +21,14 @@ LinkingTo:
     Rcpp
 Collate:
     'BaseStation.R'
-    'Normalizers.R'
+    'Tile.R'
     'Functions.R'
     'Params.R'
+    'Field.R'
+    'Normalizers.R'
     'Observation.R'
     'ServiceProvider.R'
     'TrustModel.R'
     'Device.R'
-    'Tile.R'
-    'Field.R'
     'Simulation.R'
     'li19trustmodel-package.R'

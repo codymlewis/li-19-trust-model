@@ -36,43 +36,34 @@ BaseStation <- setRefClass(
             table$hops[[device$id]] <<- 0
             updated <<- TRUE
             for (neighbour in neighbours) {
-                neighbour$tabulate.device(device, .self, 1)
+                neighbour$tabulate.device(device, 1)
             }
             updated <<- FALSE
         },
 
         disconnect = function(device) {
             "Disconnect from a device"
-            table$next.hop[[device$id]] <<- NULL
+            table$next.hop[[device$id]] <<- 0
             table$hops[[device$id]] <<- Inf
         },
 
-        tabulate.device = function(device, prev.base.station, hops) {
+        # TODO: Fix table update
+        tabulate.device = function(device, hops) {
             "Update the routing table on the given device"
-            if (table$hops[[device$id]] == 0 || (updated && table$hops[[device$id]] < hops)) {
-                true.hops <- table$hops[[device$id]]
-            } else if (updated) {
-                return ()
-            } else {
-                true.hops <- hops
-                table$next.hop[[device$id]] <<- prev.base.station
-                table$hops[[device$id]] <<- true.hops
+            if (!updated) {
+                table$next.hop[[device$id]] <<- device
+                table$hops[[device$id]] <<- hops
+                updated <<- TRUE
+                for (neighbour in neighbours) {
+                    neighbour$tabulate.device(device, hops + 1)
+                }
+                updated <<- FALSE
             }
-
-            updated <<- TRUE
-            for (neighbour in neighbours) {
-                neighbour$tabulate.device(device, .self, true.hops + 1)
-            }
-            updated <<- FALSE
         },
 
         find.device = function(dev.id) {
             "Route for the device with the given id"
-            cur.device <- .self
-            for (i in 0:table$hops[[dev.id]]) {
-                cur.device <- cur.device$table$next.hop[[dev.id]]
-            }
-            return (cur.device)
+            return (table$next.hop[[dev.id]])
         }
     )
 )
