@@ -2,7 +2,7 @@
 % Please edit documentation in R/Simulation.R
 \name{run.simulation}
 \alias{run.simulation}
-\title{Run the simulation}
+\title{Run the simulation in a console interface}
 \usage{
 run.simulation(total.time, map.filename = system.file("extdata",
   "map.csv", package = "li19trustmodel"))

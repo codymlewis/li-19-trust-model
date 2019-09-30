@@ -33,7 +33,16 @@ Tile <- setRefClass(
 
         rm.device = function(id) {
             "Remove a device from here"
-            objects[[id]] <<- NULL
+            objects[[id]] <<- 0
+        },
+
+        has.devices = function() {
+            for (object in objects) {
+                if (!is.numeric(object) && !is.null(object)) {
+                    return (TRUE)
+                }
+            }
+            return (FALSE)
         },
 
         add.signal = function(base.station) {

@@ -9,7 +9,7 @@ test_that("device storing works", {
     t$add.device(d)
     expect_equal(t$objects[[d$id]]$id, d$id)
     t$rm.device(d$id)
-    expect_equal(length(t$objects), 0)
+    expect_false(t$has.devices())
 })
 
 test_that("base station storing works", {

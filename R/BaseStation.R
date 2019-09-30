@@ -34,11 +34,6 @@ BaseStation <- setRefClass(
             "Connect to a device"
             table$next.hop[[device$id]] <<- device
             table$hops[[device$id]] <<- 0
-            updated <<- TRUE
-            for (neighbour in neighbours) {
-                neighbour$tabulate.device(device, 1)
-            }
-            updated <<- FALSE
         },
 
         disconnect = function(device) {
@@ -47,23 +42,41 @@ BaseStation <- setRefClass(
             table$hops[[device$id]] <<- Inf
         },
 
-        # TODO: Fix table update
-        tabulate.device = function(device, hops) {
+        retabulate = function(device) {
+            updated <<- TRUE
+            for (neighbour in neighbours) {
+                neighbour$tabulate.device(device, .self, table$hops[[device$id]] + 1)
+            }
+        },
+
+        tabulate.device = function(device, prev.base.station, hops) {
             "Update the routing table on the given device"
             if (!updated) {
-                table$next.hop[[device$id]] <<- device
+                table$next.hop[[device$id]] <<- prev.base.station
                 table$hops[[device$id]] <<- hops
                 updated <<- TRUE
                 for (neighbour in neighbours) {
-                    neighbour$tabulate.device(device, hops + 1)
+                    neighbour$tabulate.device(device, .self, hops + 1)
                 }
+            }
+        },
+
+        finish.update = function() {
+            if (updated) {
                 updated <<- FALSE
+                for (neighbour in neighbours) {
+                    neighbour$finish.update()
+                }
             }
         },
 
         find.device = function(dev.id) {
             "Route for the device with the given id"
-            return (table$next.hop[[dev.id]])
+            cur.device <- .self
+            while (cur.device$table$hops[[dev.id]] > 0) {
+                cur.device <- cur.device$table$next.hop[[dev.id]]
+            }
+            return (cur.device$table$next.hop[[dev.id]])
         }
     )
 )

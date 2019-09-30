@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+
+magick -delay 10 -loop 0 $(ls images/maps/*.png | sort -V) map.gif

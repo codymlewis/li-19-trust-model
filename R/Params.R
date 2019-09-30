@@ -36,5 +36,10 @@ Params <- list(
     impact.factor = 1,
     eta.i = 1,
     gap.factor = 2**-1,
-    transactions.per.time = 3
+    transactions.per.time = 3,
+    ignore.bad.rec.time = 1,
+    # img.width = 1000,
+    # img.height = 1000
+    img.width = 500,
+    img.height = 500
 )

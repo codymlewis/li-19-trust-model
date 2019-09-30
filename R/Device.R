@@ -14,7 +14,6 @@ Device <- setRefClass(
         contacts = "numeric",
         location = "numeric",
         current.goal = "numeric",
-        time = "numeric",
         capability = "numeric",
         velocity = "numeric",
         trust = "numeric",
@@ -28,8 +27,7 @@ Device <- setRefClass(
         service.provider = "ServiceProvider",
         last.rec.time = "numeric",
         time.last.moved = "numeric",
-        estimated.trusts = "numeric",
-        map = "list"
+        estimated.trusts = "numeric"
     ),
 
     methods = list(
@@ -40,8 +38,7 @@ Device <- setRefClass(
             } else {
                 map.size <- map$shape()
                 location <<- loc
-                map <<- list(map)
-                new.goal()
+                new.goal(map)
             }
             id <<- id
             set.trusts()
@@ -98,9 +95,9 @@ Device <- setRefClass(
             unknown <<- rep(0, Params$number.service.providers)
         },
 
-        new.goal = function() {
+        new.goal = function(map) {
             while (all(current.goal == location)) {
-                current.goal <<- round(runif(2, min=1, max=map[[1]]$shape()))
+                current.goal <<- round(runif(2, min=1, max=map$shape()))
             }
         },
 
@@ -118,13 +115,31 @@ Device <- setRefClass(
 
         recieve.observation = function(observation) {
             "Receive a recommendation from the sender"
-            recommendations[[observation$id.sender]] <<- observation
+            if (should.consider.rec(observation)) {
+                recommendations[[observation$id.sender]] <<- observation
+            }
         },
 
-        move = function(time.now) {
+        should.consider.rec = function(rec) {
+            if (rec$trust >= (Params$trust.rep.threshold - Params$trust.rep.adj.range)) {
+                return (TRUE)
+            }
+            okay.time <- recommendations[[rec$id.sender]]$time <
+                (Params$time - Params$ignore.bad.rec.time)
+            okay.trust <- recommendations[[rec$id.sender]]$trust >=
+                (Params$trust.rep.threshold - Params$trust.rep.adj.range)
+            okay.cached.time <- recommendations.cached[[rec$id.sender]]$time <
+                (Params$time - Params$ignore.bad.rec.time)
+            okay.cached.trust <- recommendations.cached[[rec$id.sender]]$trust >=
+                (Params$trust.rep.threshold - Params$trust.rep.adj.range)
+            return ((okay.time || okay.trust) && (okay.cached.time || okay.cached.trust))
+        },
+
+        move = function(map, time.now) {
             "Move towards the current goal"
             time.change <- time.now - time.last.moved
-            disconnect.all()
+            old.signals <- get.signals(map)
+            disconnect.all(map)
             movement.amount <- round(velocity * time.change)
             movement <- `if`(movement.amount > 0, 1:movement.amount, NULL)
             for (m in movement) {
@@ -134,7 +149,7 @@ Device <- setRefClass(
                 for (i in (location[[1]] - 1):(location[[1]] + 1)) {
                     for (j in (location[[2]] - 1):(location[[2]] + 1)) {
                         loc <- c(i, j)
-                        tile <- map[[1]]$get.tile(loc)
+                        tile <- map$get.tile(loc)
                         if (!all(loc == location) && length(tile)) {
                             tile <- tile[[1]]
                             cost <- `if`(
@@ -156,40 +171,55 @@ Device <- setRefClass(
                     }
                 }
                 if (!all(is.na(best.loc))) {
-                    map[[1]]$get.tile(location)[[1]]$rm.device(id)
+                    map$get.tile(location)[[1]]$rm.device(id)
                     location <<- best.loc
                     best.tile$add.device(.self)
                 }
             }
-            connect.all()
+            connect.all(map)
+            retabulate.all(map, old.signals)
             velocity <<- min(max(0, velocity + rnorm(1)), Params$max.velocity)
             if (all(location == current.goal)) {
-                new.goal()
+                new.goal(map)
             }
             time.last.moved <<- time.now
         },
 
-        disconnect.all = function() {
-            for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
+        disconnect.all = function(map) {
+            for (signal in map$get.tile(location)[[1]]$signals) {
                 signal$disconnect(.self)
             }
         },
 
-        connect.all = function() {
-            for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
+        connect.all = function(map) {
+            for (signal in map$get.tile(location)[[1]]$signals) {
                 signal$connect(.self)
             }
         },
 
-        has.signal = function() {
-            return (length(map[[1]]$get.tile(location)[[1]]$signals) > 0)
+        retabulate.all = function(map, old.signals) {
+            if (has.signal(map)) {
+                check.signals <- get.signals(map)
+            } else {
+                check.signals <- old.signals
+            }
+            for (signal in check.signals) {
+                signal$retabulate(.self)
+            }
+            for (signal in check.signals) {
+                signal$finish.update()
+            }
         },
 
-        get.signals = function() {
-            return (map[[1]]$get.tile(location)[[1]]$signals)
+        has.signal = function(map) {
+            return (length(map$get.tile(location)[[1]]$signals) > 0)
         },
 
-        transaction = function(time.now) {
+        get.signals = function(map) {
+            return (map$get.tile(location)[[1]]$signals)
+        },
+
+        transaction = function(time.now, map) {
             "Perform a transaction with a service provider"
             sp.id <- 1
             update.recommendations(time.now)
@@ -205,12 +235,18 @@ Device <- setRefClass(
                 service.provider$provide.service()
             }
             cur.obs <- Observation(context.target, cur.trust, id)
-            # cur.obs <- Observation(context.target, trust.evaled, id)
-            estimated.trusts[[length(estimated.trusts) + 1]] <<- cur.trust
+            prev.est.trust <- tail(estimated.trusts, 1)
+            for (i in length(estimated.trusts):time.now) {
+                if (i < time.now) {
+                    estimated.trusts[[i]] <<- prev.est.trust
+                } else {
+                    estimated.trusts[[i]] <<- cur.trust
+                }
+            }
             recieve.observation(cur.obs)
             if (last.rec.time < time.now) {
                 # send resulting observation to all contacts
-                emit.observation(cur.obs)
+                emit.observation(cur.obs, map)
                 last.rec.time <<- time.now
             }
         },
@@ -374,10 +410,10 @@ Device <- setRefClass(
             recommendations.cached <<- recommendations
         },
 
-        emit.observation = function(observation) {
+        emit.observation = function(observation, map) {
             "send observation to all contacts"
             for (contact in contacts) {
-                connection.data <- communicate(contact)
+                connection.data <- communicate(contact, map)
                 # print(connection.data[[1]])
                 if (connection.data[[1]] < Inf) {
                     connection.data[[2]]$recieve.observation(observation)
@@ -385,9 +421,9 @@ Device <- setRefClass(
             }
         },
 
-        communicate = function(contact.id) {
+        communicate = function(contact.id, map) {
             "Communicate with a random contact"
-            this.tile <- map[[1]]$get.tile(location)[[1]]
+            this.tile <- map$get.tile(location)[[1]]
             best.signal <- 1
             for (i in 1:length(this.tile$signals)) {
                 if (this.tile$signals[[i]]$table$hops[[contact.id]] <=

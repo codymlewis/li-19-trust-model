@@ -2,7 +2,7 @@
 
 
 # Create a progress bar
-cat.progress <- function(current, total, progress_len=31, prefix="")
+cat.progress <- function(current, total, progress_len=31, prefix="", postfix="")
 {
     progress = floor(100 * current / total)
     progress_bar_progress = floor(progress_len * progress * 0.01)
@@ -25,9 +25,10 @@ cat.progress <- function(current, total, progress_len=31, prefix="")
     )
 
     progress_bar = paste(c(progress_bar, rep(".", unprogressed), "]"), collapse="")
-    progress_percent = paste(c(progress, "%", `if`(progress == 100, "\n", "")), collapse="")
+    progress_percent = paste(c(progress, "%"), collapse="")
+    postfix = paste(c(postfix, `if`(progress == 100, "\n", "")), collapse="")
 
-    cat(sprintf("\r%s %s %s", prefix, progress_bar, progress_percent))
+    cat(sprintf("\r%s %s %s %s", prefix, progress_bar, progress_percent, postfix))
 }
 
 

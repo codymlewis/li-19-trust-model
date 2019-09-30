@@ -37,5 +37,6 @@ install:
 	R -e "devtools::install()"
 
 clean:
+	$(RM) -r images;\
 	cd ..;\
 	$(RM) -r $(PKGNAME).Rcheck/
