@@ -33,6 +33,9 @@ atts:
 ref:
 	R CMD Rd2pdf .
 
+gif:
+	./mapgif
+
 install:
 	R -e "devtools::install()"
 

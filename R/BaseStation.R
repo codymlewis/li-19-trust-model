@@ -12,8 +12,8 @@ BaseStation <- setRefClass(
         initialize = function(x=1, y=1) {
             location <<- c(x, y)
             table <<- list(
-                next.hop = c(list(), rep(NULL, Params$number.nodes)),
-                hops = rep(Inf, Params$number.nodes)
+                next.hop = c(list(), rep(NULL, params$number.nodes)),
+                hops = rep(Inf, params$number.nodes)
             )
             neighbours <<- list()
             updated <<- FALSE

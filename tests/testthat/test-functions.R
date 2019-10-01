@@ -6,5 +6,5 @@ test_that("Euclidean distance works", {
 
 test_that("compute gap works", {
     r <- 5
-    expect_equal(round(sqrt(2 * r**2) / 2), compute.gap(r))
+    expect_equal(round(sqrt(2 * r**2) * params$gap.factor), compute.gap(r))
 })

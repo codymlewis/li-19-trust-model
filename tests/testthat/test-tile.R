@@ -3,7 +3,7 @@ test_that("terrain assignment works", {
 })
 
 test_that("device storing works", {
-    Params$number.nodes <<- 200
+    params$number.nodes <<- 200
     d <- Device(1, NULL)
     t <- Tile(LAND)
     t$add.device(d)
@@ -22,6 +22,6 @@ test_that("base station storing works", {
 test_that("signal works", {
     b <- BaseStation(1, 1)
     t <- Tile(LAND)
-    t$add.signal(b)
+    t$add.signal(b, F)
     expect_equal(c(1, 1), t$signals[[1]]$location)
 })

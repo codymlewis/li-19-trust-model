@@ -16,7 +16,7 @@ Observation <- setRefClass(
     methods = list(
         initialize = function(context, trust, id.sender, valid=TRUE) {
             time <<- context[[1]]
-            context <<- normalize(context)
+            context <<- context
             trust <<- trust
             id.sender <<- id.sender
             valid <<- valid

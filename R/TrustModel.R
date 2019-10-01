@@ -58,7 +58,7 @@ compute.trust <- function(trust, distrust, unknown)
 weighted.avg.context <- function(contexts)
 {
     context.latest <- tail(contexts, 1)
-    factor.forget <- Params$theta**abs(context.latest - head(contexts, -1))
+    factor.forget <- params$theta.i**abs(context.latest - head(contexts, -1))
     return ((context.latest + sum(factor.forget * head(contexts, -1))) / (1 + sum(factor.forget)))
 }
 
@@ -69,7 +69,7 @@ context.distance <- function(context.target, context.weighted)
     return (
         sqrt(
             sum(
-                Params$context.weights * (context.target - context.weighted)**2
+                params$context.weights * (context.target - context.weighted)**2
             )
         )
     )
@@ -85,11 +85,11 @@ estimate.trust <- function(context.target, context.weighted, trust.current)
                 -1,
                 trust.current *
                 prod(
-                    2 - Params$eta[[4]] **
+                    2 - params$eta[[4]] **
                     delta(context.target, context.weighted, context.target > context.weighted)
                 ) *
                 prod(
-                    Params$eta[[5]] **
+                    params$eta[[5]] **
                     delta(context.target, context.weighted, context.target < context.weighted)
                 )
             )
@@ -100,11 +100,11 @@ estimate.trust <- function(context.target, context.weighted, trust.current)
             1,
             trust.current *
             prod(
-                Params$eta[[2]] **
+                params$eta[[2]] **
                 delta(context.target, context.weighted, context.target > context.weighted)
             ) *
             prod(
-                2 - Params$eta[[3]] **
+                2 - params$eta[[3]] **
                 delta(context.target, context.weighted, context.target < context.weighted)
             )
         )
@@ -116,9 +116,9 @@ estimate.trust <- function(context.target, context.weighted, trust.current)
 delta <- function(context.target, context.weighted, cond)
 {
     return (
-        (Params$context.weights[cond] *
+        (params$context.weights[cond] *
          abs(context.target[cond] - context.weighted[cond])) /
-        Params$impact.factor
+        params$impact.factor
     )
 }
 
@@ -134,11 +134,11 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown)
     return (
         `if`(
             prob.trust > max(prob.unknown, prob.distrust),
-            Params$alpha,
+            params$alpha,
             `if`(
                 prob.unknown >= max(prob.trust, prob.distrust) && prob.unknown != prob.distrust,
-                Params$beta,
-                Params$gamma
+                params$beta,
+                params$gamma
             )
         ) * trust.estimate)
 }
@@ -169,12 +169,12 @@ indirect.trust <- function(trusts, reputations, contexts, context.weighted, cont
 omega <- function(context.weighted, context.target)
 {
     return (
-        Params$eta[[1]] ** (
+        params$eta[[1]] ** (
             apply(
                 matrix(context.weighted, ncol=length(context.target), byrow=T),
                 1,
                 function(c) { context.distance(c, context.target) }
-            ) / Params$delta
+            ) / params$delta
         )
     )
 }
@@ -185,7 +185,7 @@ trend.of.trust <- function(trust0, trust1, context0, context1)
 {
     return (
         trust1 -
-            Params$eta[[1]] ** (context.distance(context1, context0) / Params$delta)
+            params$eta[[1]] ** (context.distance(context1, context0) / params$delta)
         * trust0
     )
 }
@@ -205,9 +205,20 @@ reputation.combination <- function(context.old, context.target, reputation.old, 
         `if`(
             reputation.old * reputation > 0,
             omega.new.old * reputation.old + omega.new.target *
-                Params$rho ** (omega.new.old * abs(reputation.old)) * reputation,
+                params$rho ** (omega.new.old * abs(reputation.old)) * reputation,
             omega.new.old * reputation.old + omega.new.target *
-                Params$rho ** (1 - omega.new.old * abs(reputation.old)) * reputation
+                params$rho ** (1 - omega.new.old * abs(reputation.old)) * reputation
         )
+    )
+}
+
+acceptable.rec <- function(old.rec, new.rec)
+{
+    return (
+        abs(
+            old.rec$trust *
+                params$eta[[1]]**(context.distance(old.rec$context, new.rec$context) / params$delta)
+        ) <
+        params$trust.rep.threshold + params$trust.rep.adj.range
     )
 }

@@ -9,7 +9,7 @@ ServiceProvider <- setRefClass(
     methods = list(
         initialize = function(id=1) {
             id <<- id
-            location <<- round(runif(2, min=1, max=c(Params$map.width, Params$map.height)))
+            location <<- round(runif(2, min=1, max=c(params$map.width, params$map.height)))
         },
 
         provide.service = function() {

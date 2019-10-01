@@ -5,7 +5,8 @@ Tile <- setRefClass(
         objects = "list",
         signals = "list",
         terrain = "numeric",
-        base.station = "list"
+        base.station = "list",
+        signal.edge = "logical"
     ),
 
     methods = list(
@@ -14,6 +15,7 @@ Tile <- setRefClass(
             signals <<- list()
             terrain <<- terrain
             base.station <<- list()
+            signal.edge <<- FALSE
         },
 
         add.device = function(device) {
@@ -45,9 +47,12 @@ Tile <- setRefClass(
             return (FALSE)
         },
 
-        add.signal = function(base.station) {
+        add.signal = function(base.station, is.edge) {
             "Add a signal from a base station here"
             signals[[length(signals) + 1]] <<- base.station
+            if (is.edge) {
+                signal.edge <<- TRUE
+            }
         }
     )
 )

@@ -20,24 +20,24 @@ normalize <- function(context)
 
 normalize.time <- function(time)
 {
-    return (time / Params$time.now)
+    return (time / params$time.now)
 }
 
 
 normalize.capability <- function(capability)
 {
-    return (1 - (capability / Params$max.capability))
+    return (1 - (capability / params$max.capability))
 }
 
 
 normalize.location <- function(location)
 {
-    return (1 - (location / sqrt(Params$map.width**2 + Params$map.height**2)))
+    return (1 - (location / sqrt(params$map.width**2 + params$map.height**2)))
 }
 
 
 normalize.velocity <- function(velocity)
 {
-    return (1 - (velocity / Params$max.velocity))
+    return (1 - (velocity / params$max.velocity))
 }
 

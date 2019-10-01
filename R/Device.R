@@ -27,24 +27,33 @@ Device <- setRefClass(
         service.provider = "ServiceProvider",
         last.rec.time = "numeric",
         time.last.moved = "numeric",
-        estimated.trusts = "numeric"
+        estimated.trusts = "numeric",
+        map = "list"
     ),
 
     methods = list(
         initialize = function(id, map, loc=round(runif(2, min=1, max=map.size))) {
-            if (is.null(map)) {
-                map.size <- c(Params$map.width, Params$map.height)
-                location <<- loc
-            } else {
+            if (!is.null(map)) {
                 map.size <- map$shape()
+                map <<- list(map)
                 location <<- loc
-                new.goal(map)
+                if (round(runif(1)) == 1) {
+                    domain <<- AIR
+                } else {
+                    domain <<- map$get.tile(location)[[1]]$terrain
+                }
+                new.goal()
+            } else {
+                map.size <- c(params$map.width, params$map.height)
+                location <<- loc
+                map <<- list()
+                domain <<- sample(c(AIR, LAND, WATER), 1)
             }
             id <<- id
             set.trusts()
             contacts <<- sample(
-                1:Params$number.nodes,
-                round(runif(1, min=1, max=min(Params$max.number.contacts, Params$number.nodes)))
+                1:params$number.nodes,
+                round(runif(1, min=1, max=min(params$max.number.contacts, params$number.nodes)))
             )
             if (!is.null(map)) {
                 map$get.tile(location)[[1]]$add.device(.self)
@@ -52,34 +61,25 @@ Device <- setRefClass(
                     signal$connect(.self)
                 }
             }
-            velocity <<- runif(1, min=0, max=Params$max.velocity)
-            if (!is.null(map)) {
-                if (round(runif(1)) == 1) {
-                    domain <<- AIR
-                } else {
-                    domain <<- map$get.tile(location)[[1]]$terrain
-                }
-            } else {
-                domain <<- sample(c(AIR, LAND, WATER), 1)
-            }
-            capability <<- runif(1, min=1, max=Params$max.capability)
-            reputations <<- rep(Params$init.reputation, Params$number.nodes)
-            reputations.cached <<- rep(Params$init.reputation, Params$number.nodes)
+            velocity <<- runif(1, min=0, max=params$max.velocity)
+            capability <<- runif(1, min=1, max=params$max.capability)
+            reputations <<- rep(params$init.reputation, params$number.nodes)
+            reputations.cached <<- rep(params$init.reputation, params$number.nodes)
             recommendations <<- init.recommendations()
             recommendations.cached <<- init.recommendations()
             last.rec.time <<- -Inf
-            time.last.moved <<- Params$time.now
-            estimated.trusts <<- c(Params$trust.new.contact)
+            time.last.moved <<- params$time.now
+            estimated.trusts <<- c(params$trust.new.contact)
         },
 
         init.recommendations = function() {
             return(
                 sapply(
-                    1:Params$number.nodes,
+                    1:params$number.nodes,
                     function(i) {
                         Observation(
-                            rep(0, length(Params$context.weights)),
-                            Params$trust.new.contact,
+                            rep(0, length(params$context.weights)),
+                            params$trust.new.contact,
                             i,
                             FALSE
                         )
@@ -90,14 +90,15 @@ Device <- setRefClass(
 
         set.trusts = function() {
             "Set up the trusts for the service providers in the network"
-            trust <<- rep(0, Params$number.service.providers)
-            distrust <<- rep(0, Params$number.service.providers)
-            unknown <<- rep(0, Params$number.service.providers)
+            trust <<- rep(0, params$number.service.providers)
+            distrust <<- rep(0, params$number.service.providers)
+            unknown <<- rep(0, params$number.service.providers)
         },
 
-        new.goal = function(map) {
-            while (all(current.goal == location)) {
-                current.goal <<- round(runif(2, min=1, max=map$shape()))
+        new.goal = function() {
+            while (all(current.goal == location) ||
+                   (domain == WATER && map[[1]]$get.tile(current.goal)[[1]]$terrain)) {
+                current.goal <<- round(runif(2, min=1, max=map[[1]]$shape()))
             }
         },
 
@@ -121,25 +122,15 @@ Device <- setRefClass(
         },
 
         should.consider.rec = function(rec) {
-            if (rec$trust >= (Params$trust.rep.threshold - Params$trust.rep.adj.range)) {
-                return (TRUE)
-            }
-            okay.time <- recommendations[[rec$id.sender]]$time <
-                (Params$time - Params$ignore.bad.rec.time)
-            okay.trust <- recommendations[[rec$id.sender]]$trust >=
-                (Params$trust.rep.threshold - Params$trust.rep.adj.range)
-            okay.cached.time <- recommendations.cached[[rec$id.sender]]$time <
-                (Params$time - Params$ignore.bad.rec.time)
-            okay.cached.trust <- recommendations.cached[[rec$id.sender]]$trust >=
-                (Params$trust.rep.threshold - Params$trust.rep.adj.range)
-            return ((okay.time || okay.trust) && (okay.cached.time || okay.cached.trust))
+            return (rec$trust > (params$trust.rep.threshold - params$trust.rep.adj.range) ||
+                    acceptable.rec(recommendations[[rec$id.sender]], rec))
         },
 
-        move = function(map, time.now) {
+        move = function() {
             "Move towards the current goal"
-            time.change <- time.now - time.last.moved
-            old.signals <- get.signals(map)
-            disconnect.all(map)
+            time.change <- params$time.now - time.last.moved
+            old.signals <- get.signals()
+            disconnect.all()
             movement.amount <- round(velocity * time.change)
             movement <- `if`(movement.amount > 0, 1:movement.amount, NULL)
             for (m in movement) {
@@ -149,7 +140,7 @@ Device <- setRefClass(
                 for (i in (location[[1]] - 1):(location[[1]] + 1)) {
                     for (j in (location[[2]] - 1):(location[[2]] + 1)) {
                         loc <- c(i, j)
-                        tile <- map$get.tile(loc)
+                        tile <- map[[1]]$get.tile(loc)
                         if (!all(loc == location) && length(tile)) {
                             tile <- tile[[1]]
                             cost <- `if`(
@@ -171,35 +162,35 @@ Device <- setRefClass(
                     }
                 }
                 if (!all(is.na(best.loc))) {
-                    map$get.tile(location)[[1]]$rm.device(id)
+                    map[[1]]$get.tile(location)[[1]]$rm.device(id)
                     location <<- best.loc
                     best.tile$add.device(.self)
                 }
             }
-            connect.all(map)
-            retabulate.all(map, old.signals)
-            velocity <<- min(max(0, velocity + rnorm(1)), Params$max.velocity)
+            connect.all()
+            retabulate.all(old.signals)
+            velocity <<- min(max(0, velocity + rnorm(1)), params$max.velocity)
             if (all(location == current.goal)) {
-                new.goal(map)
+                new.goal()
             }
-            time.last.moved <<- time.now
+            time.last.moved <<- params$time.now
         },
 
-        disconnect.all = function(map) {
-            for (signal in map$get.tile(location)[[1]]$signals) {
+        disconnect.all = function() {
+            for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
                 signal$disconnect(.self)
             }
         },
 
-        connect.all = function(map) {
-            for (signal in map$get.tile(location)[[1]]$signals) {
+        connect.all = function() {
+            for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
                 signal$connect(.self)
             }
         },
 
-        retabulate.all = function(map, old.signals) {
-            if (has.signal(map)) {
-                check.signals <- get.signals(map)
+        retabulate.all = function(old.signals) {
+            if (has.signal()) {
+                check.signals <- get.signals()
             } else {
                 check.signals <- old.signals
             }
@@ -211,48 +202,48 @@ Device <- setRefClass(
             }
         },
 
-        has.signal = function(map) {
-            return (length(map$get.tile(location)[[1]]$signals) > 0)
+        has.signal = function() {
+            return (length(map[[1]]$get.tile(location)[[1]]$signals) > 0)
         },
 
-        get.signals = function(map) {
-            return (map$get.tile(location)[[1]]$signals)
+        get.signals = function() {
+            return (map[[1]]$get.tile(location)[[1]]$signals)
         },
 
-        transaction = function(time.now, map) {
+        transaction = function(devices) {
             "Perform a transaction with a service provider"
             sp.id <- 1
-            update.recommendations(time.now)
-            context.target <- get.target.context(time.now)
+            update.recommendations()
+            context.target <- get.target.context()
             normalized.c.target <- normalize(context.target)
             update.performance(sp.id)
             reputation.update()
-            cur.trust <- find.direct.trust(sp.id, context.target, normalized.c.target)
-            if (abs(cur.trust) <= Params$trust.rep.adj.range) {
-                cur.trust <- find.indirect.trust(sp.id, context.target, normalized.c.target)
+            cur.obs <- find.direct.trust(sp.id, context.target, normalized.c.target)
+            if (abs(cur.obs$trust) <= params$trust.rep.adj.range) {
+                cur.obs <- find.indirect.trust(sp.id, context.target, normalized.c.target)
             }
-            if (cur.trust > Params$trust.rep.threshold - Params$trust.rep.adj.range) {
+            if (cur.obs$trust > params$trust.rep.threshold - params$trust.rep.adj.range) {
                 service.provider$provide.service()
             }
-            cur.obs <- Observation(context.target, cur.trust, id)
             prev.est.trust <- tail(estimated.trusts, 1)
-            for (i in length(estimated.trusts):time.now) {
-                if (i < time.now) {
+            for (i in length(estimated.trusts):params$time.now) {
+                if (i < params$time.now) {
                     estimated.trusts[[i]] <<- prev.est.trust
                 } else {
-                    estimated.trusts[[i]] <<- cur.trust
+                    estimated.trusts[[i]] <<- cur.obs$trust
                 }
             }
             recieve.observation(cur.obs)
-            if (last.rec.time < time.now) {
+            if (last.rec.time < params$time.now) {
                 # send resulting observation to all contacts
-                emit.observation(cur.obs, map)
-                last.rec.time <<- time.now
+                emit.observation(cur.obs, devices)
+                last.rec.time <<- params$time.now
             }
         },
 
-        update.recommendations = function(time.now) {
-            if (last.rec.time < time.now) {
+        update.recommendations = function() {
+            "Update the times stored in all of the recommendations"
+            if (last.rec.time < params$time.now) {
                 for (i in 1:length(recommendations)) {
                     recommendations[[i]]$update.time()
                     recommendations.cached[[i]]$update.time()
@@ -260,15 +251,13 @@ Device <- setRefClass(
             }
         },
 
-        find.weighted.context = function(contexts, contexts.cached) {
+        find.weighted.context = function(contexts) {
+            "Find the weighted context of the given vector of contexts"
             return (
                 apply(
                     matrix(
-                        c(
-                            contexts.cached,
-                            contexts
-                        ),
-                        nrow=length(Params$context.weights)
+                        contexts,
+                        nrow=length(params$context.weights)
                     ),
                     1,
                     weighted.avg.context
@@ -276,10 +265,11 @@ Device <- setRefClass(
             )
         },
 
-        get.target.context = function(time.now) {
+        get.target.context = function() {
+            "Get the current target context"
             return (
                 c(
-                    time.now,
+                    params$time.now,
                     capability,
                     euc.dist(location, service.provider$location),
                     velocity
@@ -290,7 +280,7 @@ Device <- setRefClass(
         find.direct.trust = function(sp.id, context.target, normalized.c.target) {
             trust.evaled <- compute.trust(trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
             context.weighted <- find.weighted.context(
-                recommendations.cached[[id]]$context, recommendations[[id]]$context
+                c(recommendations[[id]]$context, recommendations.cached[[id]]$context, normalized.c.target)
             )
             dir.trust <- direct.trust(
                 c(
@@ -298,14 +288,18 @@ Device <- setRefClass(
                     recommendations[[id]]$trust,
                     trust.evaled
                 ),
-                normalize(context.target),
+                c(recommendations.cached[[id]]$context, recommendations[[id]]$context, normalized.c.target),
                 context.weighted
             )
             return (
-                estimate.trust(
-                    normalized.c.target,
+                Observation(
                     context.weighted,
-                    weighted.trust(dir.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
+                    estimate.trust(
+                        normalized.c.target,
+                        context.weighted,
+                        weighted.trust(dir.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
+                    ),
+                    id
                 )
             )
         },
@@ -320,7 +314,7 @@ Device <- setRefClass(
                 function(i) { recommendations.cached[[i]]$context }
             )
             context.weighted <- find.weighted.context(
-                indirect.contexts.cached, indirect.contexts
+                c(indirect.contexts.cached, indirect.contexts, normalized.c.target)
             )
             ind.trust <- indirect.trust(
                 sapply(
@@ -333,10 +327,14 @@ Device <- setRefClass(
                 indirect.contexts.cached
             )
             return (
-                estimate.trust(
-                    normalized.c.target,
+                Observation(
                     context.weighted,
-                    weighted.trust(ind.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
+                    estimate.trust(
+                        normalized.c.target,
+                        context.weighted,
+                        weighted.trust(ind.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
+                    ),
+                    id
                 )
             )
         },
@@ -376,7 +374,7 @@ Device <- setRefClass(
 
                         if (trends.diff >= 0 && trends.diff < trends.max) {
                             trust.increment(sp.id)
-                        } else if (trends.diff >= trends.max && trends.diff <= Params$trust.rep.threshold) {
+                        } else if (trends.diff >= trends.max && trends.diff <= params$trust.rep.threshold) {
                             unknown.increment(sp.id)
                         } else {
                             distrust.increment(sp.id)
@@ -388,42 +386,40 @@ Device <- setRefClass(
 
         reputation.update = function() {
             "Update the reputations of the nodes"
-            reputations.new <- sapply(
+            sapply(
                 1:length(reputations),
                 function(i) {
-                    return (
-                        `if`(
-                            recommendations.cached[[i]]$valid,
-                            reputation.combination(
-                                recommendations.cached[[i]]$context,
-                                recommendations[[i]]$context,
-                                reputations.cached[[i]],
-                                reputations[[i]]
-                            ),
-                            Params$init.reputation
+                    if (recommendations.cached[[i]]$valid) {
+                        reputations.cached[[i]] <<- reputations[[i]]
+                        reputations[[i]] <<- reputation.combination(
+                            recommendations.cached[[i]]$context,
+                            recommendations[[i]]$context,
+                            reputations.cached[[i]],
+                            reputations[[i]]
                         )
-                    )
+                    }
+                    recommendations.cached[[i]] <<- recommendations[[i]]
                 }
             )
-            reputations.cached <<- reputations
-            reputations <<- reputations.new
-            recommendations.cached <<- recommendations
         },
 
-        emit.observation = function(observation, map) {
+        emit.observation = function(observation, devices) {
             "send observation to all contacts"
             for (contact in contacts) {
-                connection.data <- communicate(contact, map)
-                # print(connection.data[[1]])
+                connection.data <- communicate(contact)
                 if (connection.data[[1]] < Inf) {
+                    # routed communication
                     connection.data[[2]]$recieve.observation(observation)
+                } else if (euc.dist(devices[[contact]]$location, location) <= params$dev.signal.radius) {
+                    # direct communication
+                    devices[[contact]]$recieve.observation(observation)
                 }
             }
         },
 
-        communicate = function(contact.id, map) {
+        communicate = function(contact.id) {
             "Communicate with a random contact"
-            this.tile <- map$get.tile(location)[[1]]
+            this.tile <- map[[1]]$get.tile(location)[[1]]
             best.signal <- 1
             for (i in 1:length(this.tile$signals)) {
                 if (this.tile$signals[[i]]$table$hops[[contact.id]] <=
@@ -432,10 +428,7 @@ Device <- setRefClass(
                 }
             }
             if (this.tile$signals[[best.signal]]$table$hops[[contact.id]] < Inf) {
-                # print("here")
-                # print(contact.id)
                 other.device <- this.tile$signals[[best.signal]]$find.device(contact.id)
-                # print("here2")
             } else {
                 other.device <- NULL
             }

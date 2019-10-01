@@ -11,14 +11,14 @@ Field <- setRefClass(
 
     methods = list(
         initialize = function(data=NULL, verbose=F) {
-            base.stations <- place.base.stations(Params$map.width, Params$map.height)
+            base.stations <- place.base.stations(params$map.width, params$map.height)
             tiles <<- list()
             if (verbose) {
                 cat("Creating field...\n")
             }
-            for (i in 1:Params$map.width) {
+            for (i in 1:params$map.width) {
                 tiles[[i]] <<- list()
-                for (j in 1:Params$map.height) {
+                for (j in 1:params$map.height) {
                     tiles[[i]][[j]] <<- Tile(
                         `if`(
                             !all(is.null(data)),
@@ -27,8 +27,15 @@ Field <- setRefClass(
                         )
                     )
                     for (base.station in base.stations) {
-                        if (euc.dist(base.station$location, c(i, j)) < 100) {
-                            tiles[[i]][[j]]$add.signal(base.station)
+                        if (euc.dist(base.station$location, c(i, j)) <= params$signal.radius) {
+                            is.edge <- (euc.dist(base.station$location, c(i + 1, j)) > params$signal.radius) ||
+                                (euc.dist(base.station$location, c(i, j + 1)) > params$signal.radius) ||
+                                (euc.dist(base.station$location, c(i - 1, j)) > params$signal.radius) ||
+                                (euc.dist(base.station$location, c(i, j - 1)) > params$signal.radius)
+                            tiles[[i]][[j]]$add.signal(
+                                base.station,
+                                is.edge
+                            )
                         }
                         if (all(base.station$location == c(i, j))) {
                             tiles[[i]][[j]]$add.base.station(base.station)
@@ -38,8 +45,8 @@ Field <- setRefClass(
                 if (verbose) {
                     cat.progress(
                         i,
-                        Params$map.width,
-                        prefix=sprintf("Column %d of %d", i, Params$map.width)
+                        params$map.width,
+                        prefix=sprintf("Column %d of %d", i, params$map.width)
                     )
                 }
             }
@@ -71,11 +78,11 @@ Field <- setRefClass(
 # entirety of the rectangle
 place.base.stations <- function(width, height)
 {
-    gap <- compute.gap(Params$signal.radius)
+    gap <- compute.gap(params$signal.radius)
     base.stations <- list()
 
-    for (i in seq(1, width, gap)) {
-        for (j in seq(1, height, gap)) {
+    for (i in seq(min(width / 2, gap), width, gap)) {
+        for (j in seq(min(height / 2, gap), height, gap)) {
             base.stations[[length(base.stations) + 1]] <- BaseStation(i, j)
         }
     }
@@ -86,7 +93,7 @@ place.base.stations <- function(width, height)
 
 grid.connect <- function(field, base.stations)
 {
-    gap <- compute.gap(Params$signal.radius)
+    gap <- compute.gap(params$signal.radius)
     for (base.station in base.stations) {
         cur.loc <- base.station$location
         other.tile <- field$get.tile(cur.loc - c(gap, 0))
