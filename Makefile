@@ -16,8 +16,11 @@ deps:
 	r['CRAN'] = 'https://cran.csiro.au/'; \
 	options(repos = r); \
 	rm(r); \
-	install.packages('devtools'); \
+	install.packages(c('devtools', 'png', 'ggplot2')); \
 	}"
+
+check:
+	R -e "devtools::check()"
 
 ci-test: deps all test
 
