@@ -8,11 +8,14 @@ Authors@R:
            email = "cody@codymlewis.com")
 Description: Simulate The Trust Model Proposed In Context-Aware Trust
     Management System for IoT Applications with Multiple Domains
+Depends:
+    Rcpp,
+    ggplot2,
+    png
 Imports:
     Rcpp,
     ggplot2,
-    png,
-    shiny
+    png
 License: What license it uses
 Encoding: UTF-8
 LazyData: true
