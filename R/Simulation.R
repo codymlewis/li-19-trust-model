@@ -41,7 +41,7 @@ run.simulation <- function(total.time,
 }
 
 
-write.map <- function(map)
+write.map <- function(map, save=TRUE)
 {
     cat("Creating map image...\n")
     npixels <- params$img.width * params$img.height
@@ -67,19 +67,23 @@ write.map <- function(map)
             prefix=sprintf("Row %d of %d", i, params$map.height)
         )
     }
-    filename <- sprintf("images/maps/map-%d.png", params$time.now)
-    png::writePNG(img, filename)
-    cat(sprintf("Written %s\n", filename))
+    if (save) {
+        filename <- sprintf("images/maps/map-%d.png", params$time.now)
+        png::writePNG(img, filename)
+        cat(sprintf("Written %s\n", filename))
+    }
     return (img)
 }
 
 
-update.map <- function(time, old.locs, new.locs, img, map)
+update.map <- function(time, old.locs, new.locs, img, map, save=TRUE)
 {
     img <- update.map.locs(old.locs, img, map)
     img <- update.map.locs(new.locs, img, map)
-    filename <- sprintf("images/maps/map-%d.png", time)
-    png::writePNG(img, filename)
+    if (save) {
+        filename <- sprintf("images/maps/map-%d.png", time)
+        png::writePNG(img, filename)
+    }
     return (img)
 }
 

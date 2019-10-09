@@ -11,7 +11,8 @@ Description: Simulate The Trust Model Proposed In Context-Aware Trust
 Imports:
     Rcpp,
     ggplot2,
-    png
+    png,
+    shiny
 License: What license it uses
 Encoding: UTF-8
 LazyData: true

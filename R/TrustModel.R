@@ -123,7 +123,6 @@ delta <- function(context.target, context.weighted, cond)
 }
 
 
-
 # Calculate a weighted trust
 weighted.trust <- function(trust.estimate, trust, distrust, unknown)
 {
@@ -144,13 +143,11 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown)
 }
 
 
-
 # Calculate the direct trust
 direct.trust <- function(trusts, context.target, context.weighted)
 {
     return (sum(omega(context.weighted, context.target) * trusts))
 }
-
 
 
 # Calculate the indirect trust
@@ -211,6 +208,7 @@ reputation.combination <- function(context.old, context.target, reputation.old, 
         )
     )
 }
+
 
 acceptable.rec <- function(old.rec, new.rec)
 {

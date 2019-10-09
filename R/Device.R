@@ -73,6 +73,7 @@ Device <- setRefClass(
         },
 
         init.recommendations = function() {
+            "Create default observations for each of the nodes"
             return(
                 sapply(
                     1:params$number.nodes,
@@ -96,22 +97,26 @@ Device <- setRefClass(
         },
 
         new.goal = function() {
+            "Find a new location to head towards"
             while (all(current.goal == location) ||
-                   (domain == WATER && map[[1]]$get.tile(current.goal)[[1]]$terrain)) {
+                   (domain == WATER && map[[1]]$get.tile(current.goal)[[1]]$terrain != WATER)) {
                 current.goal <<- round(runif(2, min=1, max=map[[1]]$shape()))
             }
         },
 
         trust.increment = function(sp.id) {
+            "Increment the trust count of the service provider"
             trust[[sp.id]] <<- trust[[sp.id]] + 1
         },
 
         distrust.increment = function(sp.id) {
+            "Increment the distrust count of the service provider"
             distrust[[sp.id]] <<- distrust[[sp.id]] + 1
         },
 
         unknown.increment = function(sp.id) {
-           unknown[[sp.id]] <<- unknown[[sp.id]] + 1
+            "Increment the unknown count of the service provider"
+            unknown[[sp.id]] <<- unknown[[sp.id]] + 1
         },
 
         recieve.observation = function(observation) {
@@ -122,6 +127,7 @@ Device <- setRefClass(
         },
 
         should.consider.rec = function(rec) {
+            "Check whether the recommendation should be considered"
             return (rec$trust > (params$trust.rep.threshold - params$trust.rep.adj.range) ||
                     acceptable.rec(recommendations[[rec$id.sender]], rec))
         },
@@ -177,18 +183,22 @@ Device <- setRefClass(
         },
 
         disconnect.all = function() {
+            "Disconnect from all base stations that this is currently connected to"
             for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
                 signal$disconnect(.self)
             }
         },
 
         connect.all = function() {
+            "Connect to all base stations currently in range of this"
             for (signal in map[[1]]$get.tile(location)[[1]]$signals) {
                 signal$connect(.self)
             }
         },
 
         retabulate.all = function(old.signals) {
+            "After changing from being in one set of signals to another, make
+            them recalculate their routing tables"
             if (has.signal()) {
                 check.signals <- get.signals()
             } else {
@@ -203,10 +213,12 @@ Device <- setRefClass(
         },
 
         has.signal = function() {
+            "Check whether this has signal"
             return (length(map[[1]]$get.tile(location)[[1]]$signals) > 0)
         },
 
         get.signals = function() {
+            "Get the list of signals in range of this"
             return (map[[1]]$get.tile(location)[[1]]$signals)
         },
 
@@ -278,17 +290,23 @@ Device <- setRefClass(
         },
 
         find.direct.trust = function(sp.id, context.target, normalized.c.target) {
+            "Find the direct trust of the service provider"
+            # seperate t, d, u for direct and indirect
             trust.evaled <- compute.trust(trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
-            context.weighted <- find.weighted.context(
-                c(recommendations[[id]]$context, recommendations.cached[[id]]$context, normalized.c.target)
+            # TODO: Remove C_target from weighted avg
+            contexts <- c(
+                recommendations[[id]]$context,
+                recommendations.cached[[id]]$context,
+                normalized.c.target
             )
+            context.weighted <- find.weighted.context(contexts)
             dir.trust <- direct.trust(
                 c(
-                    recommendations.cached[[id]]$trust,
                     recommendations[[id]]$trust,
+                    recommendations.cached[[id]]$trust,
                     trust.evaled
                 ),
-                c(recommendations.cached[[id]]$context, recommendations[[id]]$context, normalized.c.target),
+                contexts,
                 context.weighted
             )
             return (
@@ -305,6 +323,7 @@ Device <- setRefClass(
         },
 
         find.indirect.trust = function(sp.id, context.target, normalized.c.target) {
+            "Find the indirect trust of the service providerc"
             indirect.contexts <- sapply(
                 setdiff(1:length(recommendations), id),
                 function(i) { recommendations[[i]]$context }
@@ -313,6 +332,7 @@ Device <- setRefClass(
                 setdiff(1:length(recommendations), id),
                 function(i) { recommendations.cached[[i]]$context }
             )
+            # No c target in weighted context
             context.weighted <- find.weighted.context(
                 c(indirect.contexts.cached, indirect.contexts, normalized.c.target)
             )

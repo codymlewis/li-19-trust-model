@@ -23,6 +23,7 @@ Observation <- setRefClass(
         },
 
         update.time = function() {
+            "Update the normalization of the time in this"
             context[[1]] <<- normalize.time(time)
         }
     )

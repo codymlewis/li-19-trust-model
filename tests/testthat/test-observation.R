@@ -3,7 +3,7 @@ test_that("fields works", {
     trust <- 1
     id.sender <- 1
     obs <- Observation(context, trust, id.sender)
-    expect_equal(normalize(context), obs$context)
+    expect_equal(context, obs$context)
     expect_equal(trust, obs$trust)
     expect_equal(id.sender, obs$id.sender)
 })

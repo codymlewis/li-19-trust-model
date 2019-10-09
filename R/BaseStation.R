@@ -43,6 +43,7 @@ BaseStation <- setRefClass(
         },
 
         retabulate = function(device) {
+            "Recalculate the routing tables of each of the neighbours"
             updated <<- TRUE
             for (neighbour in neighbours) {
                 neighbour$tabulate.device(device, .self, table$hops[[device$id]] + 1)
@@ -62,6 +63,7 @@ BaseStation <- setRefClass(
         },
 
         finish.update = function() {
+            "Finish with updating the routing tables"
             if (updated) {
                 updated <<- FALSE
                 for (neighbour in neighbours) {
