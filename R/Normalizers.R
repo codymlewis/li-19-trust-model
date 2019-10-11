@@ -30,9 +30,9 @@ normalize.capability <- function(capability)
 }
 
 
-normalize.location <- function(location)
+normalize.location <- function(distance)
 {
-    return (1 - (location / sqrt(params$map.width**2 + params$map.height**2)))
+    return (1 - (distance / sqrt(params$map.width**2 + params$map.height**2)))
 }
 
 

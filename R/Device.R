@@ -28,7 +28,9 @@ Device <- setRefClass(
         last.rec.time = "numeric",
         time.last.moved = "numeric",
         estimated.trusts = "numeric",
-        map = "list"
+        map = "list",
+        trust.evals = "numeric",
+        all.contexts = "numeric"
     ),
 
     methods = list(
@@ -70,6 +72,8 @@ Device <- setRefClass(
             last.rec.time <<- -Inf
             time.last.moved <<- params$time.now
             estimated.trusts <<- c(params$trust.new.contact)
+            trust.evals <<- params$trust.new.contact
+            all.contexts <<- get.target.context()
         },
 
         init.recommendations = function() {
@@ -80,6 +84,7 @@ Device <- setRefClass(
                     function(i) {
                         Observation(
                             rep(0, length(params$context.weights)),
+                            params$time.now,
                             params$trust.new.contact,
                             i,
                             FALSE
@@ -91,9 +96,16 @@ Device <- setRefClass(
 
         set.trusts = function() {
             "Set up the trusts for the service providers in the network"
-            trust <<- rep(0, params$number.service.providers)
-            distrust <<- rep(0, params$number.service.providers)
-            unknown <<- rep(0, params$number.service.providers)
+            trust <<- rep(0, params$number.nodes)
+            distrust <<- rep(0, params$number.nodes)
+            unknown <<- rep(0, params$number.nodes)
+        },
+
+        reset.trusts = function() {
+            "Reset the trusts of each of the nodes within the network"
+            trust[setdiff(1:params$number.nodes, id)] <<- rep(0, params$number.nodes - 1)
+            distrust[setdiff(1:params$number.nodes, id)] <<- rep(0, params$number.nodes - 1)
+            unknown[setdiff(1:params$number.nodes, id)] <<- rep(0, params$number.nodes - 1)
         },
 
         new.goal = function() {
@@ -104,19 +116,19 @@ Device <- setRefClass(
             }
         },
 
-        trust.increment = function(sp.id) {
+        trust.increment = function(contact.id) {
             "Increment the trust count of the service provider"
-            trust[[sp.id]] <<- trust[[sp.id]] + 1
+            trust[[contact.id]] <<- trust[[contact.id]] + 1
         },
 
-        distrust.increment = function(sp.id) {
+        distrust.increment = function(contact.id) {
             "Increment the distrust count of the service provider"
-            distrust[[sp.id]] <<- distrust[[sp.id]] + 1
+            distrust[[contact.id]] <<- distrust[[contact.id]] + 1
         },
 
-        unknown.increment = function(sp.id) {
+        unknown.increment = function(contact.id) {
             "Increment the unknown count of the service provider"
-            unknown[[sp.id]] <<- unknown[[sp.id]] + 1
+            unknown[[contact.id]] <<- unknown[[contact.id]] + 1
         },
 
         recieve.observation = function(observation) {
@@ -224,31 +236,43 @@ Device <- setRefClass(
 
         transaction = function(devices) {
             "Perform a transaction with a service provider"
-            sp.id <- 1
             update.recommendations()
             context.target <- get.target.context()
             normalized.c.target <- normalize(context.target)
-            update.performance(sp.id)
+            update.performance()
             reputation.update()
-            cur.obs <- find.direct.trust(sp.id, context.target, normalized.c.target)
-            if (abs(cur.obs$trust) <= params$trust.rep.adj.range) {
-                cur.obs <- find.indirect.trust(sp.id, context.target, normalized.c.target)
-            }
-            if (cur.obs$trust > params$trust.rep.threshold - params$trust.rep.adj.range) {
+            dir.trust <- find.direct.trust(context.target, normalized.c.target)
+            # print(sprintf("direct trust: %f", dir.trust$trust.est))
+            used.trust <- `if`(
+                abs(dir.trust$trust.est) <= params$trust.rep.threshold + params$trust.rep.adj.range,
+                find.indirect.trust(context.target, normalized.c.target),
+                dir.trust$trust.est
+            )
+            # print(sprintf("indirect trust: %f", find.indirect.trust(context.target, normalized.c.target)))
+            # print(sprintf("used trust: %f", used.trust))
+            if (used.trust > params$trust.rep.threshold - params$trust.rep.adj.range) {
+                # if (used.trust > params$trust.rep.threshold + params$trust.rep.adj.range) {
+                #     trust.increment(id)
+                # } else {
+                #     unknown.increment(id)
+                # }
                 service.provider$provide.service()
+            # } else {
+            #     distrust.increment(id)
             }
+            trust.increment(id)
             prev.est.trust <- tail(estimated.trusts, 1)
             for (i in length(estimated.trusts):params$time.now) {
                 if (i < params$time.now) {
                     estimated.trusts[[i]] <<- prev.est.trust
                 } else {
-                    estimated.trusts[[i]] <<- cur.obs$trust
+                    estimated.trusts[[i]] <<- used.trust
                 }
             }
-            recieve.observation(cur.obs)
+            recieve.observation(dir.trust$obs)
             if (last.rec.time < params$time.now) {
                 # send resulting observation to all contacts
-                emit.observation(cur.obs, devices)
+                emit.observation(dir.trust$obs, devices)
                 last.rec.time <<- params$time.now
             }
         },
@@ -263,20 +287,6 @@ Device <- setRefClass(
             }
         },
 
-        find.weighted.context = function(contexts) {
-            "Find the weighted context of the given vector of contexts"
-            return (
-                apply(
-                    matrix(
-                        contexts,
-                        nrow=length(params$context.weights)
-                    ),
-                    1,
-                    weighted.avg.context
-                )
-            )
-        },
-
         get.target.context = function() {
             "Get the current target context"
             return (
@@ -289,89 +299,115 @@ Device <- setRefClass(
             )
         },
 
-        find.direct.trust = function(sp.id, context.target, normalized.c.target) {
+        find.direct.trust = function(context.target, normalized.c.target) {
             "Find the direct trust of the service provider"
-            # seperate t, d, u for direct and indirect
-            trust.evaled <- compute.trust(trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
-            # TODO: Remove C_target from weighted avg
-            contexts <- c(
-                recommendations[[id]]$context,
-                recommendations.cached[[id]]$context,
-                normalized.c.target
+            print(sprintf("t: %d, d: %d, u: %d", trust[[id]], distrust[[id]], unknown[[id]]))
+            trust.evaled <- weighted.trust(
+                compute.trust(trust[[id]], distrust[[id]], unknown[[id]]),
+                trust[[id]],
+                distrust[[id]],
+                unknown[[id]]
             )
-            context.weighted <- find.weighted.context(contexts)
+            trust.evals <<- c(trust.evals, trust.evaled)
+            all.contexts <<- c(all.contexts, context.target)
+            contexts <- c(
+                recommendations.cached[[id]]$get.context(),
+                recommendations[[id]]$get.context()
+            )
+            # print("contexts")
+            # print(contexts)
+            # context.weighted <- find.weighted.context(contexts)
+            # print("weighted contexts")
+            # print(context.weighted)
+            normed.contexts <- as.vector(
+                apply(matrix(all.contexts, ncol=length(context.target), byrow=TRUE), 1, normalize)
+            )
+            # print(normed.contexts)
+            context.weighted <- find.weighted.context(normed.contexts)
+            # print(c(contexts, context.weighted))
+            # dir.trust <- direct.trust(
+            #     c(
+            #         recommendations.cached[[id]]$trust,
+            #         recommendations[[id]]$trust,
+            #         trust.evaled
+            #     ),
+            #     c(contexts, context.weighted),
+            #     context.weighted
+            # )
             dir.trust <- direct.trust(
-                c(
-                    recommendations[[id]]$trust,
-                    recommendations.cached[[id]]$trust,
-                    trust.evaled
-                ),
-                contexts,
+                trust.evals,
+                c(normed.contexts, context.weighted),
                 context.weighted
             )
+            print(sprintf("direct trust evaled: %f", trust.evaled))
+            print(sprintf("combined direct trust: %f", dir.trust))
+            print(sprintf("estimated trust: %f", estimate.trust(normalized.c.target, context.weighted, dir.trust)))
+            # print("context weighted")
+            # print(context.weighted)
+            # print("new context weighted")
+            # print(find.weighted.context(c(contexts, normalized.c.target)))
             return (
-                Observation(
-                    context.weighted,
-                    estimate.trust(
+                list(
+                    obs=Observation(
+                        find.weighted.context(c(contexts, normalized.c.target)),
+                        params$time.now,
+                        trust.evaled,
+                        # dir.trust,
+                        id
+                    ),
+                    trust.est=estimate.trust(
                         normalized.c.target,
                         context.weighted,
-                        weighted.trust(dir.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
-                    ),
-                    id
+                        dir.trust
+                    )
                 )
             )
         },
+        # TODO: fix initial observation issue
 
-        find.indirect.trust = function(sp.id, context.target, normalized.c.target) {
+        find.indirect.trust = function(context.target, normalized.c.target) {
             "Find the indirect trust of the service providerc"
             indirect.contexts <- sapply(
                 setdiff(1:length(recommendations), id),
-                function(i) { recommendations[[i]]$context }
+                function(i) {
+                    `if`(reputations[[i]] >= 0, recommendations[[i]]$get.context(), NULL)
+                }
             )
             indirect.contexts.cached <- sapply(
                 setdiff(1:length(recommendations), id),
-                function(i) { recommendations.cached[[i]]$context }
+                function(i) {
+                    `if`(reputations[[i]] >= 0, recommendations.cached[[i]]$get.context(), NULL)
+                }
             )
-            # No c target in weighted context
             context.weighted <- find.weighted.context(
-                c(indirect.contexts.cached, indirect.contexts, normalized.c.target)
+                # c(indirect.contexts.cached, indirect.contexts)
+                indirect.contexts
             )
+            # print(sprintf("cwl: %d", length(context.weighted)))
+            used.reps <- reputations[setdiff(1:length(reputations), id)]
             ind.trust <- indirect.trust(
                 sapply(
                     setdiff(1:length(recommendations), id),
-                    function(i) { recommendations[[i]]$trust }
+                    function(i) {
+                        `if`(reputations[[i]] >= 0, recommendations[[i]]$trust, NULL)
+                    }
                 ),
-                reputations[setdiff(1:length(reputations), id)],
+                used.reps[used.reps >= 0],
                 context.weighted,
                 indirect.contexts,
                 indirect.contexts.cached
             )
+            # print(sprintf("indirect trust combined: %f", ind.trust))
             return (
-                Observation(
+                estimate.trust(
+                    normalized.c.target,
                     context.weighted,
-                    estimate.trust(
-                        normalized.c.target,
-                        context.weighted,
-                        weighted.trust(ind.trust, trust[[sp.id]], distrust[[sp.id]], unknown[[sp.id]])
-                    ),
-                    id
+                    ind.trust
                 )
             )
         },
 
-        estimate.and.weigh.trust = function(c.target, c.weighted, trust.eval, sp.id) {
-            "Get the weighted trust estimate for the given context"
-            return (
-                weighted.trust(
-                    estimate.trust(c.target, c.weighted, trust.eval),
-                    trust[[sp.id]],
-                    distrust[[sp.id]],
-                    unknown[[sp.id]]
-                )
-            )
-        },
-
-        update.performance = function(sp.id) {
+        update.performance = function() {
             "Update the amounts of transactions that the service provider has
             performed and classify it"
             trend.direct <- trend.of.trust(
@@ -380,6 +416,7 @@ Device <- setRefClass(
                 recommendations.cached[[id]]$context,
                 recommendations[[id]]$context
             )
+            # print(sprintf("trend of trust: %f", trend.direct))
             sapply(1:length(recommendations),
                 function(i) {
                     if (recommendations.cached[[i]]$valid) {
@@ -389,15 +426,20 @@ Device <- setRefClass(
                             recommendations.cached[[i]]$context,
                             recommendations[[i]]$context
                         )
+                        # print(sprintf("direct trend of trust: %f", trend.direct))
+                        # print(sprintf("indirec trend of trust: %f", trend.indirect))
                         trends.diff <- abs(trend.direct - trend.indirect)
+                        # print(sprintf("diff trend of trust: %f", trends.diff))
                         trends.max <- max(abs(trend.direct), abs(trend.indirect))
 
-                        if (trends.diff >= 0 && trends.diff < trends.max) {
-                            trust.increment(sp.id)
-                        } else if (trends.diff >= trends.max && trends.diff <= params$trust.rep.threshold) {
-                            unknown.increment(sp.id)
+                        if (trends.diff >= params$trust.rep.threshold - params$trust.rep.adj.range &&
+                            trends.diff < trends.max + params$trust.rep.adj.range) {
+                            trust.increment(recommendations[[i]]$id.sender)
+                        } else if (trends.diff >= trends.max - params$trust.rep.adj.range &&
+                                   trends.diff <= params$trend.threshold + params$trust.rep.adj.range) {
+                            unknown.increment(recommendations[[i]]$id.sender)
                         } else {
-                            distrust.increment(sp.id)
+                            distrust.increment(recommendations[[i]]$id.sender)
                         }
                     }
                 }
@@ -409,14 +451,25 @@ Device <- setRefClass(
             sapply(
                 1:length(reputations),
                 function(i) {
+                    cur.rep <- weighted.trust(
+                        compute.trust(trust[[i]], distrust[[i]], unknown[[i]]),
+                        trust[[i]],
+                        distrust[[i]],
+                        unknown[[i]]
+                    )
                     if (recommendations.cached[[i]]$valid) {
                         reputations.cached[[i]] <<- reputations[[i]]
                         reputations[[i]] <<- reputation.combination(
                             recommendations.cached[[i]]$context,
                             recommendations[[i]]$context,
                             reputations.cached[[i]],
-                            reputations[[i]]
+                            cur.rep
                         )
+                        # print(sprintf("rep %d: %f", i, reputations[[i]]))
+                        if (abs(reputations[[i]]) <=
+                            params$trust.rep.threshold + params$trust.rep.adj.range) {
+                            reputations[[i]] <<- params$init.reputation
+                        }
                     }
                     recommendations.cached[[i]] <<- recommendations[[i]]
                 }

@@ -51,6 +51,7 @@ Params <- setRefClass(
             dev.signal.radius <<- 14
             max.number.contacts <<- 100
             init.reputation <<- 0.01
+            # init.reputation <<- 1
             trust.new.contact <<- 0
             trust.rep.threshold <<- 0
             trend.threshold <<- 0.01

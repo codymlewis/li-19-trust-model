@@ -16,33 +16,33 @@ test_that("device creation works", {
     expect_equal(d$id, 1)
     expect_equal(d$last.rec.time, -Inf)
     expect_equal(d$time.last.moved, params$time.now)
-    expect_equal(d$trust, 0)
-    expect_equal(d$distrust, 0)
-    expect_equal(d$unknown, 0)
+    expect_equal(d$trust, rep(0, params$number.nodes))
+    expect_equal(d$distrust, rep(0, params$number.nodes))
+    expect_equal(d$unknown, rep(0, params$number.nodes))
 })
 
 
 test_that("trust update works", {
     d$trust.increment(1)
-    expect_equal(d$trust, 1)
+    expect_equal(d$trust[[1]], 1)
 })
 
 
 test_that("distrust update works", {
     d$distrust.increment(1)
-    expect_equal(d$distrust, 1)
+    expect_equal(d$distrust[[1]], 1)
 })
 
 
 test_that("unknown update works", {
     d$unknown.increment(1)
-    expect_equal(d$unknown, 1)
+    expect_equal(d$unknown[[1]], 1)
 })
 
 
 test_that("recieving observations works", {
     context = c(1, 1, 1, 1)
-    obs <- Observation(context, 1, 1)
+    obs <- Observation(context, 1, 1, 1)
     d$recieve.observation(obs)
     expect_equal(d$recommendations[[1]]$context, obs$context)
 })

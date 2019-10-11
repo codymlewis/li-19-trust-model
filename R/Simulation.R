@@ -16,6 +16,7 @@ run.simulation <- function(total.time,
     img <- write.map(map.and.devices$map)
     cat("Performing transactions...\n")
     while (params$time.now <= total.time) {
+        set.trusts(map.and.devices$devices)
         movements <- transact.and.move(map.and.devices$devices)
         img <- update.map(params$time.now, movements[[1]], movements[[2]], img, map.and.devices$map)
         cat.progress(
@@ -38,6 +39,56 @@ run.simulation <- function(total.time,
             postfix=sprintf("Saved to %s", filename)
         )
     }
+}
+
+
+#' Run the simulation in a graphical interface
+#'
+#' Simulate the trust model and the mobile network and iterate
+#' @keywords trust model simulate simulation run
+#' @include Params.R
+#' @include ServiceProvider.R
+#' @include Field.R
+#' @export run.gui
+
+run.gui <- function(map.filename=system.file("extdata", "map.csv", package="li19trustmodel"))
+{
+    map.and.devices <- create.map.and.devices(map.filename)
+    dir.create("images/maps", recursive=TRUE, showWarning=FALSE)
+    img <- write.map(map.and.devices$map)
+    map.filename <- sprintf("images/maps/map-%d.png", params$time.now)
+    cat("Performing transactions...\n")
+    tlabel <- NULL
+    closed <- FALSE
+    tt <- tcltk::tktoplevel()
+    tcltk::tcl("image", "create", "photo", "map", file=sprintf("images/maps/map-%d.png", params$time.now))
+    maplabel <- tcltk2::tk2label(tt, image="map", compound="image")
+    tcltk::tkgrid(maplabel, row="0", column="0")
+    timelabel <- tcltk2::tk2label(tt, text=sprintf("Current time: %d", params$time.now))
+    tcltk::tkgrid(timelabel, row="1", column="0")
+    filename <- tempfile(fileext=".png")
+    png(filename=filename, width=params$img.width, height=params$img.height)
+    print(plot.estimated.trust(1, map.and.devices$devices))
+    dev.off()
+    tcltk::tcl("image", "create", "photo", "trustest", file=filename)
+    trustlabel <- tcltk2::tk2label(tt, image="trustest", compound="image")
+    tcltk::tkgrid(trustlabel, row="0", column="1")
+    closebut <- tcltk2::tk2button(tt, text="Close", command = function() { cat("Bye.\n"); closed <<- TRUE })
+    tcltk::tkgrid(closebut, row="1", column="1")
+    while (!closed) {
+        params$increment.time()
+        set.trusts(map.and.devices$devices)
+        movements <- transact.and.move(map.and.devices$devices)
+        img <- update.map(params$time.now, movements[[1]], movements[[2]], img, map.and.devices$map)
+        tcltk::tcl("image", "create", "photo", "map", file=sprintf("images/maps/map-%d.png", params$time.now))
+        filename <- tempfile(fileext=".png")
+        png(filename=filename, width=params$img.width, height=params$img.height)
+        print(plot.estimated.trust(1, map.and.devices$devices))
+        dev.off()
+        tcltk::tcl("image", "create", "photo", "trustest", file=filename)
+        tcltk::tkconfigure(timelabel, text=sprintf("Current time: %d", params$time.now))
+    }
+    tcltk::tkdestroy(tt)
 }
 
 
@@ -96,7 +147,10 @@ update.map.locs <- function(locs, img, map)
         cur.tile <- map$get.tile(loc)[[1]]
         for (i in 1:height.factor) {
             for (j in 1:width.factor) {
-                img[(loc[[1]] - 1) * height.factor + i, (loc[[2]] - 1) * width.factor  + j,] <- draw.map(cur.tile)
+                img[
+                    (loc[[1]] - 1) * height.factor + i, (loc[[2]] - 1)
+                    * width.factor  + j,
+                ] <- draw.map(cur.tile)
             }
         }
     }
@@ -142,6 +196,14 @@ create.map.and.devices <- function(map.filename)
         }
     )
     return (list(map=map, devices=devices))
+}
+
+
+set.trusts <- function(devices)
+{
+    for (device in devices) {
+        device$set.trusts()
+    }
 }
 
 

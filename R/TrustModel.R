@@ -63,6 +63,20 @@ weighted.avg.context <- function(contexts)
 }
 
 
+find.weighted.context <- function(contexts) {
+    return (
+        apply(
+            matrix(
+                contexts,
+                nrow=length(params$context.weights)
+            ),
+            1,
+            weighted.avg.context
+        )
+    )
+}
+
+
 # Find the distance between the target context, and the weighted context
 context.distance <- function(context.target, context.weighted)
 {
@@ -146,6 +160,10 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown)
 # Calculate the direct trust
 direct.trust <- function(trusts, context.target, context.weighted)
 {
+    # print(context.weighted)
+    # print("target context")
+    # print(context.target)
+    # print(omega(context.weighted, context.target))
     return (sum(omega(context.weighted, context.target) * trusts))
 }
 
@@ -165,12 +183,17 @@ indirect.trust <- function(trusts, reputations, contexts, context.weighted, cont
 # A function used within the indirect and direct trust calculations
 omega <- function(context.weighted, context.target)
 {
+    # print(sprintf("eta 1: %f", params$eta[[1]]))
+    # print(context.target)
     return (
         params$eta[[1]] ** (
             apply(
-                matrix(context.weighted, ncol=length(context.target), byrow=T),
+                matrix(context.target, ncol=length(context.weighted), byrow=T),
                 1,
-                function(c) { context.distance(c, context.target) }
+                function(c) {
+                    # print(c)
+                    return (context.distance(context.weighted, c))
+                }
             ) / params$delta
         )
     )
@@ -191,11 +214,7 @@ trend.of.trust <- function(trust0, trust1, context0, context1)
 # Calculate a new reputation value for a service provider
 reputation.combination <- function(context.old, context.target, reputation.old, reputation)
 {
-    context.new <- apply(
-        matrix(c(context.old, context.target), ncol=2),
-        1,
-        weighted.avg.context
-    )
+    context.new <- find.weighted.context(c(context.old, context.target))
     omega.new.old <- omega(context.new, context.old)
     omega.new.target <- omega(context.new, context.target)
     return (
@@ -215,7 +234,7 @@ acceptable.rec <- function(old.rec, new.rec)
     return (
         abs(
             old.rec$trust *
-                params$eta[[1]]**(context.distance(old.rec$context, new.rec$context) / params$delta)
+                params$eta[[1]]**(context.distance(new.rec$context, old.rec$context) / params$delta)
         ) <
         params$trust.rep.threshold + params$trust.rep.adj.range
     )
