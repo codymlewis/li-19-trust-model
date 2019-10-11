@@ -11,13 +11,15 @@ test:
 	R -e "devtools::test()"
 
 deps:
-	R -e "if (!require(devtools)) { \
+	R -e "\
 	r = getOption('repos'); \
 	r['CRAN'] = 'https://cran.csiro.au/'; \
 	options(repos = r); \
 	rm(r); \
-	install.packages(c('devtools', 'png', 'ggplot2')); \
-	}"
+	if (!require(devtools)) { \
+	install.packages('devtools'); \
+	};\
+	install.packages(c('png', 'ggplot2', 'tcltk2'))"
 
 check:
 	R -e "devtools::check()"

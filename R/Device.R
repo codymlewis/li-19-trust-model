@@ -448,6 +448,7 @@ Device <- setRefClass(
 
         reputation.update = function() {
             "Update the reputations of the nodes"
+            # TODO: Have cached context for each node, update here
             sapply(
                 1:length(reputations),
                 function(i) {
