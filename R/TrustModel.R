@@ -63,6 +63,7 @@ weighted.avg.context <- function(contexts)
 }
 
 
+# Take a vector of the contexts and return the weighted average
 find.weighted.context <- function(contexts) {
     return (
         apply(
@@ -234,7 +235,10 @@ acceptable.rec <- function(old.rec, new.rec)
     return (
         abs(
             old.rec$trust *
-                params$eta[[1]]**(context.distance(new.rec$context, old.rec$context) / params$delta)
+                params$eta[[1]]**(
+                    context.distance(new.rec$context, old.rec$context) /
+                        params$delta
+                )
         ) <
         params$trust.rep.threshold + params$trust.rep.adj.range
     )

@@ -14,21 +14,13 @@ Observation <- setRefClass(
     ),
 
     methods = list(
-        initialize = function(context, time, trust, id.sender, valid=TRUE) {
-            time <<- time
+        initialize = function(context, trust, id.sender) {
             context <<- context
             trust <<- trust
             id.sender <<- id.sender
-            valid <<- valid
-        },
-
-        update.time = function() {
-            "Update the normalization of the time in this"
-            context[[1]] <<- normalize.time(time)
         },
 
         get.context = function() {
-            # return (normalize(context))
             return (context)
         }
     )
