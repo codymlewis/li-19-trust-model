@@ -1,7 +1,7 @@
 test_that("time normalizer works", {
     time <- 5
     expect_that(
-        time / params$time.now,
+        time,
         equals(normalize.time(time))
     )
 })
@@ -41,7 +41,7 @@ test_that("context normalizer works", {
     vel <- 5
     expect_that(
         c(
-            time / params$time.now,
+            time,
             1 - (cap / params$max.capability),
             1 - (loc / sqrt(params$map.width**2 + params$map.height**2)),
             1 - (vel / params$max.velocity)

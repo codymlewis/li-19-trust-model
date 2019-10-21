@@ -10,7 +10,8 @@ map.data <- data.frame(
     rep(LAND, 3), rep(LAND, 3), rep(WATER, 3)
 )
 f <- Field(map.data)
-d <- Device(1, f, c(1, 1))
+sp <- ServiceProvider()
+d <- Device(1, sp, f, c(1, 1))
 
 test_that("device creation works", {
     expect_equal(d$id, 1)
@@ -42,9 +43,9 @@ test_that("unknown update works", {
 
 test_that("recieving observations works", {
     context = c(1, 1, 1, 1)
-    obs <- Observation(context, 1, 1, 1)
+    obs <- Observation(context, 1, 1)
     d$recieve.observation(obs)
-    expect_equal(d$recommendations[[1]]$context, obs$context)
+    expect_equal(tail(d$contexts[[1]], 4), obs$context)
 })
 
 

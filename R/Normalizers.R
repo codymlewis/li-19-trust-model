@@ -20,7 +20,7 @@ normalize <- function(context)
 
 normalize.time <- function(time)
 {
-    return (time / params$time.now)
+    return (time)
 }
 
 

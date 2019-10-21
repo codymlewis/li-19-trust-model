@@ -219,7 +219,7 @@ create.map.and.devices <- function(map.filename)
                 params$number.nodes,
                 prefix=sprintf("Device %d of %d", i, params$number.nodes)
             )
-            return (Device(i, map))
+            return (Device(i, sp, map))
         }
     )
     return (list(map=map, devices=devices))

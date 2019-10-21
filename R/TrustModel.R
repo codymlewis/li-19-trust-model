@@ -161,10 +161,6 @@ weighted.trust <- function(trust.estimate, trust, distrust, unknown)
 # Calculate the direct trust
 direct.trust <- function(trusts, context.target, context.weighted)
 {
-    # print(context.weighted)
-    # print("target context")
-    # print(context.target)
-    # print(omega(context.weighted, context.target))
     return (sum(omega(context.weighted, context.target) * trusts))
 }
 
@@ -184,15 +180,12 @@ indirect.trust <- function(trusts, reputations, contexts, context.weighted, cont
 # A function used within the indirect and direct trust calculations
 omega <- function(context.weighted, context.target)
 {
-    # print(sprintf("eta 1: %f", params$eta[[1]]))
-    # print(context.target)
     return (
         params$eta[[1]] ** (
             apply(
                 matrix(context.target, ncol=length(context.weighted), byrow=T),
                 1,
                 function(c) {
-                    # print(c)
                     return (context.distance(context.weighted, c))
                 }
             ) / params$delta

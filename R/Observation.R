@@ -1,16 +1,10 @@
-#' @include Params.R
-#' @include Functions.R
-#' @include Normalizers.R
-
 Observation <- setRefClass(
     "Observation",
 
     fields = list(
-        time = "numeric",
         context = "numeric",
         trust = "numeric",
-        id.sender = "numeric",
-        valid = "logical"
+        id.sender = "numeric"
     ),
 
     methods = list(
@@ -18,10 +12,6 @@ Observation <- setRefClass(
             context <<- context
             trust <<- trust
             id.sender <<- id.sender
-        },
-
-        get.context = function() {
-            return (context)
         }
     )
 )

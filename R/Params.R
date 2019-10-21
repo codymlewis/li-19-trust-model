@@ -12,6 +12,7 @@ Params <- setRefClass(
         dev.signal.radius = "numeric",
         max.number.contacts = "numeric",
         init.reputation = "numeric",
+        rep.self = "numeric",
         trust.new.contact = "numeric",
         trust.rep.threshold = "numeric",
         trend.threshold = "numeric",
@@ -38,7 +39,8 @@ Params <- setRefClass(
         transactions.per.time = "numeric",
         ignore.bad.rec.time = "numeric",
         img.width = "numeric",
-        img.height = "numeric"
+        img.height = "numeric",
+        compression.factor = "numeric"
     ),
 
     methods = list(
@@ -51,6 +53,7 @@ Params <- setRefClass(
             dev.signal.radius <<- 14
             max.number.contacts <<- 100
             init.reputation <<- 0.01
+            rep.self <<- 1
             # init.reputation <<- 1
             trust.new.contact <<- 0
             trust.rep.threshold <<- 0
@@ -83,6 +86,8 @@ Params <- setRefClass(
             # img.height <<- 1000
             img.width <<- 500
             img.height <<- 500
+            compression.factor <<- Inf
+            # compression.factor <<- 15
         },
 
         increment.time = function() {

@@ -4,7 +4,8 @@ test_that("terrain assignment works", {
 
 test_that("device storing works", {
     params$number.nodes <<- 200
-    d <- Device(1, NULL)
+    sp <- ServiceProvider()
+    d <- Device(1, sp, NULL)
     t <- Tile(LAND)
     t$add.device(d)
     expect_equal(t$objects[[d$id]]$id, d$id)

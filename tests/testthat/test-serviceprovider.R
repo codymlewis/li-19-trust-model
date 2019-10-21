@@ -1,4 +1,4 @@
 test_that("provide service works", {
     sp <- ServiceProvider()
-    expect_equal(TRUE, sp$provide.service())
+    expect_equal(TRUSTED, sp$provide.service())
 })
