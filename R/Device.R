@@ -341,13 +341,16 @@ Device <- setRefClass(
             reputation.update()
             rs.dir.trust <- find.direct.trust(context.target, normalized.c.target)
             # print(sprintf("direct trust: %f", dir.trust$trust.est))
-            used.trust <- `if`(
-                abs(rs.dir.trust$trust.evaled) <=
-                    params$trust.rep.threshold + params$trust.rep.adj.range,
-                find.indirect.trust(context.target, normalized.c.target),
-                rs.dir.trust$trust.est
-            )
+            # print("nct")
+            # print(normalized.c.target)
+            # used.trust <- `if`(
+            #     abs(rs.dir.trust$trust.evaled) <=
+            #         params$trust.rep.threshold + params$trust.rep.adj.range,
+            #     find.indirect.trust(context.target, normalized.c.target),
+            #     rs.dir.trust$trust.est
+            # )
             # print(sprintf("indirect trust: %f", find.indirect.trust(context.target, normalized.c.target)))
+            used.trust <- rs.dir.trust$trust.est
             # print(sprintf("used trust: %f", used.trust))
             if (used.trust > params$trust.rep.threshold - params$trust.rep.adj.range) {
                 t.rs <- service.provider$provide.service()
@@ -389,12 +392,12 @@ Device <- setRefClass(
 
         find.direct.trust = function(context.target, normalized.c.target) {
             "Find the direct trust of the service provider"
-            # print(sprintf("t: %d, d: %d, u: %d", trust[[id]], distrust[[id]], unknown[[id]]))
+            # print(sprintf("t: %d, d: %d, u: %d", sp.trust, sp.distrust, sp.unknown))
             trust.evaled <- weighted.trust(
-                compute.trust(trust[[id]], distrust[[id]], unknown[[id]]),
-                trust[[id]],
-                distrust[[id]],
-                unknown[[id]]
+                compute.trust(sp.trust, sp.distrust, sp.unknown),
+                sp.trust,
+                sp.distrust,
+                sp.unknown
             )
             # print(sprintf("Trust evaled %f", trust.evaled))
             # print("contexts")
@@ -404,6 +407,7 @@ Device <- setRefClass(
             # print(normed.contexts)
             # print(c(contexts, context.weighted))
             context.weighted <- find.weighted.context(contexts[[id]])
+            print(context.weighted)
             dir.trust <<- direct.trust(
                 c(stored.trusts[[id]], trust.evaled),
                 c(contexts[[id]], context.weighted),
@@ -425,7 +429,7 @@ Device <- setRefClass(
                     ),
                     trust.est=estimate.trust(
                         normalized.c.target,
-                        recommendations[[id]]$context,
+                        context.weighted,
                         dir.trust
                     ),
                     trust.evaled=trust.evaled
@@ -471,9 +475,9 @@ Device <- setRefClass(
         update.performance = function() {
             "Update the amounts of transactions that the service provider has
             performed and classify it"
-            if (length(contexts[[id]] > 1)) {
+            if (length(stored.trusts[[id]]) > 1) {
                 trends.direct <- sapply(
-                    1:(length(contexts[[id]]) - 1),
+                    1:(length(stored.trusts[[id]]) - 1),
                     function(i) {
                         trend.of.trust(
                             stored.trusts[[id]][[i]],
@@ -483,46 +487,53 @@ Device <- setRefClass(
                         )
                     }
                 )
-                # print(sprintf("trend of trust: %f", trend.direct))
                 sapply(
-                    setdiff(1:length(contexts), id),
+                    setdiff(1:length(stored.trusts), id),
                     function(i) {
-                        trends.indirect <- sapply(
-                            1:(length(contexts[[i]]) - 1),
-                            function(j) {
-                                trend.of.trust(
-                                    stored.trusts[[i]][[j]],
-                                    stored.trusts[[i]][[j + 1]],
-                                    contexts[[i]][(4 * (j - 1) + 1):(4 * j)],
-                                    contexts[[i]][(4 * j + 1):(4 * (j + 1))]
-                                )
-                            }
-                        )
-                        trends.diff <- abs(trends.direct - trends.indirect)
-                        trends.max <- sapply(
-                            1:length(trends.direct),
-                            function(j) {
-                                max(abs(trends.direct[[j]]), abs(trends.indirect[[j]]))
-                            }
-                        )
-                        sapply(
-                            1:length(trends.diff),
-                            function(j) {
-                                if (trends.diff[[j]] >= params$trust.rep.threshold -
-                                        params$trust.rep.adj.range &&
-                                    trends.diff[[j]] < trends.max[[j]] +
-                                        params$trust.rep.adj.range) {
-                                    trust.increment(i)
-                                } else if (trends.diff >= trends.max -
-                                            params$trust.rep.adj.range &&
-                                           trends.diff <= params$trend.threshold +
-                                            params$trust.rep.adj.range) {
-                                    unknown.increment(i)
-                                } else {
-                                    distrust.increment(i)
+                        if (length(stored.trusts[[i]]) > 1) {
+                            # TODO: use trends with matching times
+                            trends.indirect <- sapply(
+                                1:(min(
+                                    length(stored.trusts[[i]]),
+                                    length(stored.trusts[[id]])
+                                ) - 1),
+                                function(j) {
+                                    trend.of.trust(
+                                        stored.trusts[[i]][[j]],
+                                        stored.trusts[[i]][[j + 1]],
+                                        contexts[[i]][(4 * (j - 1) + 1):(4 * j)],
+                                        contexts[[i]][(4 * j + 1):(4 * (j + 1))]
+                                    )
                                 }
-                            }
-                        )
+                            )
+                            trends.diff <- abs(
+                                trends.direct[1:length(trends.indirect)] - trends.indirect
+                            )
+                            trends.max <- sapply(
+                                1:length(trends.indirect),
+                                function(j) {
+                                    max(abs(trends.direct[[j]]), abs(trends.indirect[[j]]))
+                                }
+                            )
+                            sapply(
+                                1:length(trends.diff),
+                                function(j) {
+                                    if (trends.diff[[j]] >= params$trust.rep.threshold -
+                                            params$trust.rep.adj.range &&
+                                        trends.diff[[j]] < trends.max[[j]] +
+                                            params$trust.rep.adj.range) {
+                                        trust.increment(i)
+                                    } else if (trends.diff >= trends.max -
+                                                params$trust.rep.adj.range &&
+                                               trends.diff <= params$trend.threshold +
+                                                params$trust.rep.adj.range) {
+                                        unknown.increment(i)
+                                    } else {
+                                        distrust.increment(i)
+                                    }
+                                }
+                            )
+                        }
                     }
                 )
             }
