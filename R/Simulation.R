@@ -222,6 +222,12 @@ create.map.and.devices <- function(map.filename)
             return (Device(i, sp, map))
         }
     )
+    lapply(
+        1:params$number.nodes,
+        function(i) {
+
+        }
+    )
     return (list(map=map, devices=devices))
 }
 

@@ -15,7 +15,7 @@ d <- Device(1, sp, f, c(1, 1))
 
 test_that("device creation works", {
     expect_equal(d$id, 1)
-    expect_equal(d$last.rec.time, -Inf)
+    expect_equal(d$last.rec.time, 1)
     expect_equal(d$time.last.moved, params$time.now)
     expect_equal(d$trust, rep(0, params$number.nodes))
     expect_equal(d$distrust, rep(0, params$number.nodes))
@@ -87,6 +87,14 @@ test_that("moving works", {
     expect_equal(init.basestation.id, d$get.signals()[[1]]$location)
     expect_false(is_equal(d$current.goal, init.goal))
     expect_false(is_equal(d$velocity, init.velocity))
+})
+
+test_that("adding contacts works", {
+    d2 <- Device(2, sp, f, c(2, 2))
+    devs <- c(d, d2)
+    d$add.contact(2, devs)
+    expect_equal(d$contacts[[1]], 2)
+    expect_equal(d2$contacts[[1]], 1)
 })
 
 

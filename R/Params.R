@@ -87,7 +87,7 @@ Params <- setRefClass(
             img.width <<- 500
             img.height <<- 500
             compression.factor <<- Inf
-            # compression.factor <<- 15
+            # compression.factor <<- 1
         },
 
         increment.time = function() {

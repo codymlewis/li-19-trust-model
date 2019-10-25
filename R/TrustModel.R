@@ -207,9 +207,9 @@ trend.of.trust <- function(trust0, trust1, context0, context1)
 
 
 # Calculate a new reputation value for a service provider
-reputation.combination <- function(context.old, context.target, reputation.old, reputation)
+reputation.combination <- function(context.old, context.target, context.new,
+                                   reputation.old, reputation)
 {
-    context.new <- find.weighted.context(c(context.old, context.target))
     omega.new.old <- omega(context.new, context.old)
     omega.new.target <- omega(context.new, context.target)
     return (
