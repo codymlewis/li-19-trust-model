@@ -24,5 +24,5 @@ make all
 ## Pre-push hooks
 
 ```
-ln -s config/pre-push.sh .git/hooks/pre-push
+ln config/pre-push.sh .git/hooks/pre-push
 ```
