@@ -162,10 +162,14 @@ Device <- setRefClass(
                     break
                 }
                 if (length(devs[[i]]$contacts) < params$max.number.contacts) {
-                    contacts <<- c(contacts, i)
-                    devs[[i]]$contacts <- c(devs[[i]]$contacts, id)
+                    new.contact(i)
+                    devs[[i]]$new.contact(id)
                 }
             }
+        },
+
+        new.contact = function(add) {
+            contacts <<- union(contacts, add)
         },
 
         set.trusts = function() {
@@ -218,7 +222,7 @@ Device <- setRefClass(
 
         recieve.observation = function(obs) {
             "Receive a recommendation from the sender"
-            # performance.update(obs)
+            performance.update(obs)
             combine.rep(obs)
             if ((length(contexts[[obs$id.sender]]) / length(params$context.weights)) >=
                 params$compression.factor) {
@@ -252,7 +256,7 @@ Device <- setRefClass(
                 contexts[[obs$id.sender]][
                     (cw.len * (i - 1) + 1):(cw.len * i)
                 ] <<- obs$context
-                stored.trusts[[obs$id.sender]][i] <<- obs$trust
+                stored.trusts[[obs$id.sender]][[i]] <<- obs$trust
             }
         },
 
@@ -357,10 +361,14 @@ Device <- setRefClass(
             context.target <- get.target.context()
             normalized.c.target <- normalize(context.target)
             rs.dir.trust <- find.direct.trust(context.target, normalized.c.target)
-            # used.trust <- `if`(
-            #     abs(rs.dir.trust$trust.evaled) <= rs.dir.trust$trust.est
-            # )
-            used.trust <- rs.dir.trust$trust.est
+            used.trust <- `if`(
+                abs(rs.dir.trust$trust.evaled) <=
+                    (params$trust.rep.threshold + params$trust.rep.adj.range),
+                find.indirect.trust(context.target, normalized.c.target),
+                rs.dir.trust$trust.est
+            )
+            # used.trust <- find.indirect.trust(context.target, normalized.c.target)
+            # used.trust <- rs.dir.trust$trust.est
             if (used.trust > params$trust.rep.threshold - params$trust.rep.adj.range) {
                 t.rs <- service.provider$provide.service()
                 if (t.rs == TRUSTED) {
@@ -379,12 +387,28 @@ Device <- setRefClass(
                     estimated.trusts[[i]] <<- used.trust
                 }
             }
+            # print(rs.dir.trust$obs$trust)
             recieve.observation(rs.dir.trust$obs)
-            if (last.rec.time < params$time.now) {
-                # send resulting observation to all contacts
-                emit.observation(rs.dir.trust$obs, devices)
-                last.rec.time <<- params$time.now
-            }
+            # if (last.rec.time < params$time.now) {
+            #     # send resulting observation to all contacts
+            #     emit.observation(rs.dir.trust$obs, devices)
+            #     last.rec.time <<- params$time.now
+            # }
+        },
+
+        send.rec = function(devices) {
+            emit.observation(
+                Observation(
+                    contexts[[id]][get.context.index(params$time.now)],
+                    weighted.trust(
+                        compute.trust(sp.trust, sp.distrust, sp.unknown),
+                        sp.trust,
+                        sp.distrust,
+                        sp.unknown
+                    ),
+                    id
+                )
+            )
         },
 
         get.target.context = function() {
@@ -434,24 +458,40 @@ Device <- setRefClass(
 
         find.indirect.trust = function(context.target, normalized.c.target) {
             "Find the indirect trust of the service provider"
-            context.weighted <- find.weighted.context(
-                unlist(
-                    lapply(
-                        contacts,
-                        function(i) { contexts[[i]][!is.na(contexts[[i]])] }
-                    )
+            all.contexts <- unlist(
+                lapply(
+                    contacts,
+                    function(i) {
+                        contexts[[i]][!is.na(contexts[[i]])]
+                    }
                 )
             )
-            # print(context.weighted)
+            if (is.null(all.contexts)) {
+                return (params$trust.new.contact)
+            }
+            context.weighted <- find.weighted.context(all.contexts)
             ind.trust <- sum(
                 sapply(
                     contacts,
                     function(i) {
                         # TODO: find whether should be considered
+                        # print(sprintf("node: %d", i))
+                        # print("stored trusts")
+                        # print(stored.trusts[[i]][!is.na(stored.trusts[[i]])])
+                        # print("contexts")
+                        # print(contexts[[i]][!is.na(contexts[[i]])])
                         # print("cached contexts")
                         # print(cached.contexts[[i]])
-                        # print("stored trusts")
-                        # print(stored.trusts[[i]])
+                        # print("this indirect trust")
+                        # print(
+                        #     indirect.trust(
+                        #         stored.trusts[[i]][!is.na(stored.trusts[[i]])],
+                        #         reputations[[i]],
+                        #         contexts[[i]][!is.na(contexts[[i]])],
+                        #         context.weighted,
+                        #         cached.contexts[[i]]
+                        #     )
+                        # )
                         indirect.trust(
                             stored.trusts[[i]][!is.na(stored.trusts[[i]])],
                             reputations[[i]],
@@ -462,7 +502,10 @@ Device <- setRefClass(
                     }
                 )
             )
+            # print("indirect trust")
             # print(ind.trust)
+            # print("reps")
+            # print(reputations)
             return (
                 estimate.trust(
                     normalized.c.target,
@@ -473,24 +516,92 @@ Device <- setRefClass(
         },
 
         performance.update = function(obs) {
-            if (is.na(stored.trusts[[id]][params$time.now])) {
-                context.now <- tail(contexts[[id]], length(params$context.weights))
-                trust.now <- stored.trusts[[id]][[params$time.now]]
+            "Update the stored performance of the observer"
+            if (length(!is.na(stored.trusts[[obs$id.sender]])) > 1) {
+                context.trust.now <- get.contexts.trust.ex.id(
+                    params$time.now, obs$id.sender
+                )
+                prev.time <- tail(which(!is.na(stored.trusts[[obs$id.sender]]))[[1]])
+                context.trust.prev <- get.contexts.trust.ex.id(
+                    prev.time, obs$id.sender
+                )
+                if (length(context.trust.now) > 0 && length(context.trust.prev) > 0) {
+                    direct.trend <- trend.of.trust(
+                        context.trust.prev$trust,
+                        context.trust.now$trust,
+                        context.trust.prev$context,
+                        context.trust.now$context
+                    )
+                    indirect.trend <- trend.of.trust(
+                        stored.trusts[[obs$id.sender]][[prev.time]],
+                        obs$trust,
+                        contexts[[obs$id.sender]][get.context.index(prev.time)],
+                        obs$context
+                    )
+                    trends.diff <- abs(direct.trend - indirect.trend)
+                    trends.max <- max(abs(direct.trend), abs(indirect.trend))
+                    if (trends.diff < trends.max) {
+                        trust[[obs$id.sender]] <<- trust[[obs$id.sender]] + 1
+                    } else if (trends.diff <= max(trends.max, params$trend.threshold)) {
+                        unknown[[obs$id.sender]] <<- unknown[[obs$id.sender]] + 1
+                    } else {
+                        distrust[[obs$id.sender]] <<- distrust[[obs$id.sender]] + 1
+                    }
+                }
+            }
+        },
+
+        get.contexts.trust.ex.id = function(time, id.sender) {
+            "Get the contexts and trust from a particular time excluding the id"
+            if (!is.na(stored.trusts[[id]][time])) {
+                return (
+                    list(
+                        context=tail(contexts[[id]], length(params$context.weights)),
+                        trust=stored.trusts[[id]][[time]]
+                    )
+                )
             } else {
-                context.now <- sapply(
-                    setdiff(contacts, c(id, obs$id.sender)),
-                    function(i) {
-                        tail(contexts[[i]], length(params$context.weights))
-                    }
-                )
-                trust.now <- sapply(
-                    setdiff(contacts, c(id, obs$id.sender)),
-                    function(i) {
-                        if (!is.na(stored.trusts[[i]][params$time.now])) {
-                            stored.trusts[[i]][[params$time.now]]
+                all.contexts <- unlist(
+                    lapply(
+                        setdiff(contacts, c(id, id.sender)),
+                        function(i) {
+                            cur.context <- contexts[[i]][get.context.index(time)]
+                            return (
+                                `if`(
+                                    any(is.na(cur.context)),
+                                    NULL,
+                                    cur.context
+                                )
+                            )
                         }
-                    }
+                    )
                 )
+                if (is.null(all.contexts)) {
+                    return (list())
+                }
+                c.weighted <- find.weighted.context(all.contexts)
+                t.comb <- sum(
+                    unlist(
+                        lapply(
+                            setdiff(contacts, c(id, id.sender)),
+                            function(i) {
+                                cur.context <- contexts[[i]][get.context.index(time)]
+                                if (is.na(stored.trusts[[i]][time])) {
+                                    return (NULL)
+                                }
+                                ind.trust <- indirect.trust(
+                                    stored.trusts[[i]][[time]],
+                                    reputations[[i]],
+                                    cur.context,
+                                    c.weighted,
+                                    cached.contexts[[i]]
+                                )
+                                return (`if`(is.na(ind.trust), NULL, ind.trust))
+                            }
+                        )
+                    )
+                )
+                return (list(context=c.weighted, trust=t.comb))
             }
         },
 
@@ -499,6 +610,12 @@ Device <- setRefClass(
             c.new <- find.weighted.context(
                 c(cached.contexts[[obs$id.sender]], obs$context)
             )
+            # print("sender id")
+            # print(obs$id.sender)
+            # print("c new")
+            # print(c.new)
+            # print("rep before")
+            # print(reputations[[obs$id.sender]])
             reputations[[obs$id.sender]] <<- reputation.combination(
                 cached.contexts[[obs$id.sender]],
                 obs$context,
@@ -515,6 +632,8 @@ Device <- setRefClass(
                     unknown[[obs$id.sender]]
                 )
             )
+            # print("rep after")
+            # print(reputations[[obs$id.sender]])
             if (abs(reputations[[obs$id.sender]]) <= params$trust.rep.adj.range) {
                 reputations[[obs$id.sender]] <<- params$init.reputation
             }

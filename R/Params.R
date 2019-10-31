@@ -45,8 +45,8 @@ Params <- setRefClass(
 
     methods = list(
         initialize = function() {
-            # number.nodes <<- 200
-            number.nodes <<- 10
+            number.nodes <<- 200
+            # number.nodes <<- 10
             number.service.providers <<- 1
             signal.radius <<- 100
             # signal.radius <<- 50

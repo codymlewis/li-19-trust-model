@@ -171,8 +171,8 @@ indirect.trust <- function(trusts, reputations, contexts, context.weighted, cont
     omega.weighted <- omega(context.weighted, contexts)
     omega.cached <- omega(context.cached, contexts)
     return (
-        sum(omega.weighted * omega.cached * reputations * trusts) /
-        # sum(omega.weighted * omega.cached * trusts) /
+        # sum(omega.weighted * omega.cached * reputations * trusts) /
+        sum(omega.weighted * omega.cached * trusts) /
             sum(omega.weighted)
     )
 }
@@ -236,4 +236,10 @@ acceptable.rec <- function(old.rec, new.rec)
         ) <
         params$trust.rep.threshold + params$trust.rep.adj.range
     )
+}
+
+
+get.context.index <- function(i) {
+    con.len <- length(params$context.weights)
+    return ((con.len * (i - 1) + 1):(con.len * i))
 }

@@ -225,7 +225,13 @@ create.map.and.devices <- function(map.filename)
     lapply(
         1:params$number.nodes,
         function(i) {
-
+            devices[[i]]$add.contact(
+                sample(
+                    setdiff(1:params$number.nodes, i),
+                    sqrt(min(params$max.number.contacts, params$number.nodes - 1))
+                ),
+                devices
+            )
         }
     )
     return (list(map=map, devices=devices))
@@ -250,6 +256,9 @@ transact.and.move <- function(devices)
             amount.transactions <- 0:round(runif(1, min=0, max=params$transactions.per.time))
             for (i in setdiff(amount.transactions, 0)) {
                 device$transaction(devices)
+            }
+            if (length(amount.transactions) > 1) {
+                device$send.rec(devices)
             }
         }
         device$move()

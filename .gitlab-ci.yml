@@ -1,13 +1,7 @@
 image: rocker/tidyverse
 
 stages:
-  - test
   - deploy
-
-test:
-  stage: test
-  script:
-    - make ci-test
 
 pages:
   stage: deploy
