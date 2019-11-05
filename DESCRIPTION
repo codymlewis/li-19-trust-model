@@ -22,7 +22,6 @@ Suggests:
 LinkingTo:
     Rcpp
 Collate:
-    'BaseStation.R'
     'Tile.R'
     'Functions.R'
     'Params.R'
@@ -32,5 +31,8 @@ Collate:
     'ServiceProvider.R'
     'TrustModel.R'
     'Device.R'
+    'BadMouther.R'
+    'BaseStation.R'
+    'Observer.R'
     'Simulation.R'
     'li19trustmodel-package.R'
