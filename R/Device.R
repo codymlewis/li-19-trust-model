@@ -24,22 +24,12 @@ Device <- setRefClass(
         sp.unknown = "numeric",
         domain = "numeric",
         reputations = "numeric",
-        reputations.cached = "numeric",
-        recommendations = "list",
-        recommendations.cached = "list",
         service.provider = "ServiceProvider",
-        last.rec.time = "numeric",
         time.last.moved = "numeric",
         estimated.trusts = "numeric",
         map = "list",
-        direct.observations = "list",
-        indirect.observations = "list",
-        weighted.avg.contexts = "list",
-        latest.contexts = "list",
-        dir.trust = "numeric",
         contexts = "list",
         stored.trusts = "list",
-        trends.of.trust = "list",
         cached.contexts = "list"
     ),
 
@@ -73,35 +63,8 @@ Device <- setRefClass(
             velocity <<- runif(1, min=0, max=params$max.velocity)
             capability <<- runif(1, min=1, max=params$max.capability)
             reputations <<- rep(params$init.reputation, params$number.nodes)
-            reputations.cached <<- rep(params$init.reputation, params$number.nodes)
-            recommendations <<- init.recommendations()
-            recommendations.cached <<- init.recommendations()
-            last.rec.time <<- params$time.now
             time.last.moved <<- params$time.now
             estimated.trusts <<- c(params$trust.new.contact)
-            direct.observations <<- list(
-                Observation(
-                    rep(0, length(params$context.weights)),
-                    params$trust.new.contact,
-                    id
-                )
-            )
-            indirect.observations <<- lapply(
-                1:params$number.nodes,
-                function(i) {
-                    Observation(
-                        rep(0, length(params$context.weights)),
-                        params$trust.new.contact,
-                        i
-                    )
-                }
-            )
-            weighted.avg.contexts <<- lapply(
-                1:params$number.nodes,
-                function(i) { rep(0, length(params$context.weights)) }
-            )
-            latest.contexts <<- list()
-            dir.trust <<- params$trust.new.contact
             contexts <<- lapply(
                 1:params$number.nodes,
                 function(i) {
@@ -121,7 +84,9 @@ Device <- setRefClass(
             )
             stored.trusts <<- lapply(
                 1:params$number.nodes,
-                function(i) { params$trust.new.contact }
+                function(i) {
+                    params$trust.new.contact
+                }
             )
             reputations <<- sapply(
                 1:params$number.nodes,
@@ -133,26 +98,9 @@ Device <- setRefClass(
                     )
                 }
             )
-            trends.of.trust <<- list()
             cached.contexts <<- lapply(
                 1:params$number.nodes,
                 function(i) { contexts[[i]] }
-            )
-        },
-
-        init.recommendations = function() {
-            "Create default observations for each of the nodes"
-            return(
-                sapply(
-                    1:params$number.nodes,
-                    function(i) {
-                        Observation(
-                            rep(0, length(params$context.weights)),
-                            params$trust.new.contact,
-                            i
-                        )
-                    }
-                )
             )
         },
 
@@ -246,7 +194,6 @@ Device <- setRefClass(
                 )
                 contexts[[obs$id.sender]] <<- w.context
             } else {
-                con.len <- length(contexts[[obs$id.sender]])
                 cw.len <- length(params$context.weights)
                 i <- `if`(
                     params$compression.factor < Inf,
@@ -260,10 +207,22 @@ Device <- setRefClass(
             }
         },
 
-        should.consider.rec = function(rec) {
+        should.consider.rec = function(id.sender, transaction.num) {
             "Check whether the recommendation should be considered"
-            return (rec$trust > (params$delta.a - params$trust.rep.adj.range) ||
-                    acceptable.rec(recommendations[[rec$id.sender]], rec))
+            recced.trust <- stored.trusts[[id.sender]][transaction.num]
+            return (
+                recced.trust > (params$delta.a - params$trust.rep.adj.range) |
+                    sapply(
+                        transaction.num,
+                        function(i) {
+                            acceptable.rec(
+                                cached.contexts[[id.sender]],
+                                contexts[[id.sender]][get.context.index(i)],
+                                recced.trust
+                            )
+                        }
+                    )
+            )
         },
 
         move = function() {
@@ -389,11 +348,6 @@ Device <- setRefClass(
             }
             # print(rs.dir.trust$obs$trust)
             recieve.observation(rs.dir.trust$obs)
-            # if (last.rec.time < params$time.now) {
-            #     # send resulting observation to all contacts
-            #     emit.observation(rs.dir.trust$obs, devices)
-            #     last.rec.time <<- params$time.now
-            # }
         },
 
         send.rec = function(devices) {
@@ -434,7 +388,7 @@ Device <- setRefClass(
             valid.trusts <- !is.na(stored.trusts[[id]])
             valid.contexts <- !is.na(contexts[[id]])
             context.weighted <- find.weighted.context(contexts[[id]][valid.contexts])
-            dir.trust <<- direct.trust(
+            dir.trust <- direct.trust(
                 c(stored.trusts[[id]][valid.trusts], trust.evaled),
                 c(contexts[[id]][valid.contexts], context.weighted),
                 context.weighted
@@ -458,54 +412,66 @@ Device <- setRefClass(
 
         find.indirect.trust = function(context.target, normalized.c.target) {
             "Find the indirect trust of the service provider"
+            considerations <- lapply(
+                1:params$number.nodes,
+                function(i) {
+                    `if`(
+                        i %in% contacts,
+                        should.consider.rec(i, which(!is.na(stored.trusts[[i]]))),
+                        FALSE
+                    )
+                }
+            )
             all.contexts <- unlist(
                 lapply(
                     contacts,
                     function(i) {
-                        contexts[[i]][!is.na(contexts[[i]])]
+                        contexts[[i]][!is.na(contexts[[i]])] *
+                            ifelse(
+                                as.vector(
+                                    matrix(
+                                        rep(considerations[[i]], length(params$context.weights)),
+                                        nrow=length(params$context.weights),
+                                        byrow=T
+                                    )
+                                ),
+                                1,
+                                -1
+                            )
                     }
                 )
             )
             if (is.null(all.contexts)) {
                 return (params$trust.new.contact)
             }
-            context.weighted <- find.weighted.context(all.contexts)
-            ind.trust <- sum(
-                sapply(
+            context.weighted <- find.weighted.context(all.contexts[all.contexts >= 0])
+            omega.weighted <- unlist(
+                lapply(
                     contacts,
                     function(i) {
-                        # TODO: find whether should be considered
-                        # print(sprintf("node: %d", i))
-                        # print("stored trusts")
-                        # print(stored.trusts[[i]][!is.na(stored.trusts[[i]])])
-                        # print("contexts")
-                        # print(contexts[[i]][!is.na(contexts[[i]])])
-                        # print("cached contexts")
-                        # print(cached.contexts[[i]])
-                        # print("this indirect trust")
-                        # print(
-                        #     indirect.trust(
-                        #         stored.trusts[[i]][!is.na(stored.trusts[[i]])],
-                        #         reputations[[i]],
-                        #         contexts[[i]][!is.na(contexts[[i]])],
-                        #         context.weighted,
-                        #         cached.contexts[[i]]
-                        #     )
-                        # )
-                        indirect.trust(
-                            stored.trusts[[i]][!is.na(stored.trusts[[i]])],
-                            reputations[[i]],
-                            contexts[[i]][!is.na(contexts[[i]])],
-                            context.weighted,
-                            cached.contexts[[i]]
+                        return (
+                            `if`(
+                                reputations[[i]] < 0,
+                                0,  # Do not consider recs from trustees with -ve rep
+                                omega(context.weighted, contexts[[i]][!is.na(contexts[[i]])]) *
+                                    considerations[[i]]
+                            )
                         )
                     }
                 )
             )
-            # print("indirect trust")
-            # print(ind.trust)
-            # print("reps")
-            # print(reputations)
+            num.part <- unlist(
+                lapply(
+                    contacts,
+                    function(i) {
+                        omega(cached.contexts[[i]], contexts[[i]][!is.na(contexts[[i]])]) *
+                            reputations[[i]] *
+                            stored.trusts[[i]][!is.na(stored.trusts[[i]])] *
+                            considerations[[i]]
+                    }
+                )
+            )
+            ind.trust <- sum(omega.weighted * num.part) / sum(omega.weighted)
             return (
                 estimate.trust(
                     normalized.c.target,
@@ -610,12 +576,6 @@ Device <- setRefClass(
             c.new <- find.weighted.context(
                 c(cached.contexts[[obs$id.sender]], obs$context)
             )
-            # print("sender id")
-            # print(obs$id.sender)
-            # print("c new")
-            # print(c.new)
-            # print("rep before")
-            # print(reputations[[obs$id.sender]])
             reputations[[obs$id.sender]] <<- reputation.combination(
                 cached.contexts[[obs$id.sender]],
                 obs$context,
@@ -632,8 +592,6 @@ Device <- setRefClass(
                     unknown[[obs$id.sender]]
                 )
             )
-            # print("rep after")
-            # print(reputations[[obs$id.sender]])
             if (abs(reputations[[obs$id.sender]]) <= params$trust.rep.adj.range) {
                 reputations[[obs$id.sender]] <<- params$init.reputation
             }

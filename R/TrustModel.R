@@ -171,8 +171,7 @@ indirect.trust <- function(trusts, reputations, contexts, context.weighted, cont
     omega.weighted <- omega(context.weighted, contexts)
     omega.cached <- omega(context.cached, contexts)
     return (
-        # sum(omega.weighted * omega.cached * reputations * trusts) /
-        sum(omega.weighted * omega.cached * trusts) /
+        sum(omega.weighted * omega.cached * reputations * trusts) /
             sum(omega.weighted)
     )
 }
@@ -213,24 +212,23 @@ reputation.combination <- function(context.old, context.target, context.new,
     omega.new.old <- omega(context.new, context.old)
     omega.new.target <- omega(context.new, context.target)
     return (
+        omega.new.old * reputation.old + omega.new.target * params$rho **
         `if`(
             reputation.old * reputation > 0,
-            omega.new.old * reputation.old + omega.new.target *
-                params$rho ** (omega.new.old * abs(reputation.old)) * reputation,
-            omega.new.old * reputation.old + omega.new.target *
-                params$rho ** (1 - omega.new.old * abs(reputation.old)) * reputation
-        )
+            omega.new.old * abs(reputation.old),
+            1 - omega.new.old * abs(reputation.old)
+        ) * reputation
     )
 }
 
 
-acceptable.rec <- function(old.rec, new.rec)
+acceptable.rec <- function(c.cached, c.recced, t.recced)
 {
     return (
         abs(
-            old.rec$trust *
+            t.recced *
                 params$eta[[1]]**(
-                    context.distance(new.rec$context, old.rec$context) /
+                    context.distance(c.cached, c.recced) /
                         params$delta
                 )
         ) <

@@ -228,7 +228,7 @@ create.map.and.devices <- function(map.filename)
             devices[[i]]$add.contact(
                 sample(
                     setdiff(1:params$number.nodes, i),
-                    sqrt(min(params$max.number.contacts, params$number.nodes - 1))
+                    params$contacts.per.node
                 ),
                 devices
             )
@@ -274,8 +274,7 @@ plot.estimated.trust <- function(dev.id, devices)
         transactions=1:length(devices[[dev.id]]$estimated.trusts),
         estimated.trusts=devices[[dev.id]]$estimated.trusts
     )
-    ggplot2::ggplot(data=data, ggplot2::aes(x=transactions, y=estimated.trusts)) +
-        ggplot2::geom_line(colour="blue") +
+    plt <- ggplot2::ggplot(data=data, ggplot2::aes(x=transactions, y=estimated.trusts)) +
         ggplot2::labs(
             title=sprintf("Estimated Trusts of Device %d", dev.id),
             x="Time",
@@ -283,4 +282,11 @@ plot.estimated.trust <- function(dev.id, devices)
             colour=NULL
         ) +
         ggplot2::scale_y_continuous(limits=c(-1.1, 1.1))
+    return (
+        `if`(
+            length(devices[[dev.id]]$estimated.trusts) > 1,
+            plt + ggplot2::geom_line(colour="blue"),
+            plt + ggplot2::geom_point(colour="blue")
+        )
+    )
 }

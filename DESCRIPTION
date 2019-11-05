@@ -1,6 +1,6 @@
 Package: li19trustmodel
 Title: Li 19 Trust Model
-Version: 0.0
+Version: 0.0.1.9000
 Authors@R:
     person(given = "Cody",
            family = "Lewis",

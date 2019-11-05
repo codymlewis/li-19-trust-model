@@ -40,13 +40,14 @@ Params <- setRefClass(
         ignore.bad.rec.time = "numeric",
         img.width = "numeric",
         img.height = "numeric",
-        compression.factor = "numeric"
+        compression.factor = "numeric",
+        contacts.per.node = "numeric"
     ),
 
     methods = list(
         initialize = function() {
-            number.nodes <<- 200
-            # number.nodes <<- 10
+            # number.nodes <<- 200
+            number.nodes <<- 20
             number.service.providers <<- 1
             signal.radius <<- 100
             # signal.radius <<- 50
@@ -87,7 +88,9 @@ Params <- setRefClass(
             img.width <<- 500
             img.height <<- 500
             compression.factor <<- Inf
-            # compression.factor <<- 1
+            # compression.factor <<- 5
+            # contacts.per.node <- sqrt(min(params$max.number.contacts, params$number.nodes - 1))
+            contacts.per.node <<- 10
         },
 
         increment.time = function() {

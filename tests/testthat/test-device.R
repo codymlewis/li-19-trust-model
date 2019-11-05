@@ -96,8 +96,3 @@ test_that("adding contacts works", {
     expect_equal(d$contacts[[1]], 2)
     expect_equal(d2$contacts[[1]], 1)
 })
-
-
-test_that("transaction works", {
-
-})
