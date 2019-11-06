@@ -8,41 +8,41 @@
 #' @include Field.R
 #' @include Device.R
 #' @include Observer.R
-#' @export run.simulation
+#' @export run_simulation
 
-run.simulation <- function(total.time,
-                           map.filename = system.file(
-                             "extdata", "map.csv",
-                             package = "li19trustmodel"
+run_simulation <- function(total_time,
+                           map_filename = system.file(
+                               "extdata", "map.csv",
+                               package = "li19trustmodel"
                            )) {
-  map.and.devices <- create.map.and.devices(map.filename)
-  dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
-  img <- write.map(map.and.devices$map)
-  cat("Performing transactions...\n")
-  while (params$time.now <= total.time) {
-    set.trusts(map.and.devices$devices)
-    movements <- transact.and.move(map.and.devices$devices)
-    img <- update.map(params$time.now, movements[[1]], movements[[2]], img, map.and.devices$map)
-    cat.progress(
-      params$time.now,
-      total.time,
-      prefix = sprintf("Time %d of %d", params$time.now, total.time)
-    )
-    params$increment.time()
-  }
-  cat("Plotting estimated trusts...\n")
-  dir.create("images/plots", showWarning = FALSE)
-  for (i in 1:params$number.nodes) {
-    plot.estimated.trust(i, map.and.devices$devices)
-    filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
-    ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
-    cat.progress(
-      i,
-      params$number.nodes,
-      prefix = sprintf("Device %d of %d", i, params$number.nodes),
-      postfix = sprintf("Saved to %s", filename)
-    )
-  }
+    map_and_devices <- create_map_and_devices(map_filename)
+    dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
+    img <- write_map(map_and_devices$map)
+    cat("Performing transactions...\n")
+    while (params$time_now <= total_time) {
+        set_trusts(map_and_devices$devices)
+        movements <- transact_and_move(map_and_devices$devices)
+        img <- update_map(params$time_now, movements[[1]], movements[[2]], img, map_and_devices$map)
+        cat_progress(
+            params$time_now,
+            total_time,
+            prefix = sprintf("Time %d of %d", params$time_now, total_time)
+        )
+        params$increment_time()
+    }
+    cat("Plotting estimated trusts...\n")
+    dir.create("images/plots", showWarning = FALSE)
+    for (i in 1:params$number_nodes) {
+        plot_estimated_trust(i, map_and_devices$devices)
+        filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
+        ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
+        cat_progress(
+            i,
+            params$number_nodes,
+            prefix = sprintf("Device %d of %d", i, params$number_nodes),
+            postfix = sprintf("Saved to %s", filename)
+        )
+    }
 }
 
 
@@ -53,249 +53,249 @@ run.simulation <- function(total.time,
 #' @include Params.R
 #' @include ServiceProvider.R
 #' @include Field.R
-#' @export run.gui
+#' @export run_gui
 
-run.gui <- function(map.filename = system.file("extdata", "map.csv", package = "li19trustmodel")) {
-  map.and.devices <- create.map.and.devices(map.filename)
-  dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
-  dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
-  img <- write.map(map.and.devices$map)
-  map.filename <- sprintf("images/maps/map-%d.png", params$time.now)
-  cat("Performing transactions...\n")
-  tlabel <- NULL
-  tt <- tcltk::tktoplevel()
-  tcltk::tcl(
-    "image",
-    "create",
-    "photo",
-    "map",
-    file = sprintf("images/maps/map-%d.png", params$time.now)
-  )
-  maplabel <- tcltk2::tk2label(tt, image = "map", compound = "image")
-  tcltk::tkgrid(maplabel, row = "0", column = "0")
-  timelabel <- tcltk2::tk2label(tt, text = sprintf("Current time: %d", params$time.now))
-  tcltk::tkgrid(timelabel, row = "1", column = "0")
-  filename <- tempfile(fileext = ".png")
-  png(filename = filename, width = params$img.width, height = params$img.height)
-  print(plot.estimated.trust(1, map.and.devices$devices))
-  dev.off()
-  tcltk::tcl("image", "create", "photo", "trustest", file = filename)
-  trustlabel <- tcltk2::tk2label(tt, image = "trustest", compound = "image")
-  tcltk::tkgrid(trustlabel, row = "0", column = "1")
-  closebut <- tcltk2::tk2button(
-    tt,
-    text = "Save and Exit",
-    command = function() {
-      plot.estimated.trust(1, map.and.devices$devices)
-      filename <- "images/plots/device-1-estimated-trust.png"
-      ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
-      cat(sprintf("Saved estimated trust plot to %s\n", filename))
-      cat("Bye.\n")
-      quit("no")
-    }
-  )
-  tcltk::tkgrid(closebut, row = "1", column = "1")
-  repeat {
-    params$increment.time()
-    set.trusts(map.and.devices$devices)
-    movements <- transact.and.move(map.and.devices$devices)
-    img <- update.map(
-      params$time.now, movements[[1]], movements[[2]], img, map.and.devices$map
-    )
+run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")) {
+    map_and_devices <- create_map_and_devices(map_filename)
+    dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
+    dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
+    img <- write_map(map_and_devices$map)
+    map_filename <- sprintf("images/maps/map-%d.png", params$time_now)
+    cat("Performing transactions...\n")
+    tlabel <- NULL
+    tt <- tcltk::tktoplevel()
     tcltk::tcl(
-      "image",
-      "create",
-      "photo",
-      "map",
-      file = sprintf("images/maps/map-%d.png", params$time.now)
+        "image",
+        "create",
+        "photo",
+        "map",
+        file = sprintf("images/maps/map-%d.png", params$time_now)
     )
+    maplabel <- tcltk2::tk2label(tt, image = "map", compound = "image")
+    tcltk::tkgrid(maplabel, row = "0", column = "0")
+    timelabel <- tcltk2::tk2label(tt, text = sprintf("Current time: %d", params$time_now))
+    tcltk::tkgrid(timelabel, row = "1", column = "0")
     filename <- tempfile(fileext = ".png")
-    png(filename = filename, width = params$img.width, height = params$img.height)
-    print(
-      plot.estimated.trust(
-        length(map.and.devices$devices),
-        map.and.devices$devices,
-        title = "Estimated Trusts of the Observer"
-      )
-    )
+    png(filename = filename, width = params$img_width, height = params$img_height)
+    print(plot_estimated_trust(1, map_and_devices$devices))
     dev.off()
     tcltk::tcl("image", "create", "photo", "trustest", file = filename)
-    tcltk::tkconfigure(timelabel, text = sprintf("Current time: %d", params$time.now))
-  }
-  tcltk::tkdestroy(tt)
-}
-
-
-write.map <- function(map, save = TRUE) {
-  cat("Creating map image...\n")
-  npixels <- params$img.width * params$img.height
-  red <- matrix(0, nrow = params$img.height, ncol = params$img.width)
-  green <- matrix(0, nrow = params$img.height, ncol = params$img.width)
-  blue <- matrix(0, nrow = params$img.height, ncol = params$img.width)
-  img <- array(c(red, green, blue), dim = c(params$img.height, params$img.width, 3))
-  width.factor <- ceiling(params$img.width / params$map.width)
-  height.factor <- ceiling(params$img.height / params$map.height)
-  for (i in 1:params$map.height) {
-    for (j in 1:params$map.width) {
-      cur.tile <- map$get.tile(c(i, j))[[1]]
-      for (k in 1:height.factor) {
-        for (l in 1:width.factor) {
-          img[
-            (i - 1) * height.factor + k,
-            (j - 1) * width.factor + l,
-          ] <- draw.map(cur.tile)
+    trustlabel <- tcltk2::tk2label(tt, image = "trustest", compound = "image")
+    tcltk::tkgrid(trustlabel, row = "0", column = "1")
+    closebut <- tcltk2::tk2button(
+        tt,
+        text = "Save and Exit",
+        command = function() {
+            plot_estimated_trust(1, map_and_devices$devices)
+            filename <- "images/plots/device-1-estimated-trust.png"
+            ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
+            cat(sprintf("Saved estimated trust plot to %s\n", filename))
+            cat("Bye.\n")
+            quit("no")
         }
-      }
-    }
-    cat.progress(
-      i,
-      params$map.height,
-      prefix = sprintf("Row %d of %d", i, params$map.height)
     )
-  }
-  if (save) {
-    filename <- sprintf("images/maps/map-%d.png", params$time.now)
-    png::writePNG(img, filename)
-    cat(sprintf("Written %s\n", filename))
-  }
-  return(img)
-}
-
-
-update.map <- function(time, old.locs, new.locs, img, map, save = TRUE) {
-  img <- update.map.locs(old.locs, img, map)
-  img <- update.map.locs(new.locs, img, map)
-  if (save) {
-    filename <- sprintf("images/maps/map-%d.png", time)
-    png::writePNG(img, filename)
-  }
-  return(img)
-}
-
-
-update.map.locs <- function(locs, img, map) {
-  width.factor <- ceiling(params$img.width / params$map.width)
-  height.factor <- ceiling(params$img.height / params$map.height)
-  for (loc in locs) {
-    cur.tile <- map$get.tile(loc)[[1]]
-    for (i in 1:height.factor) {
-      for (j in 1:width.factor) {
-        img[
-          (loc[[1]] - 1) * height.factor + i, (loc[[2]] - 1)
-          * width.factor + j,
-        ] <- draw.map(cur.tile)
-      }
+    tcltk::tkgrid(closebut, row = "1", column = "1")
+    repeat {
+        params$increment_time()
+        set_trusts(map_and_devices$devices)
+        movements <- transact_and_move(map_and_devices$devices)
+        img <- update_map(
+            params$time_now, movements[[1]], movements[[2]], img, map_and_devices$map
+        )
+        tcltk::tcl(
+            "image",
+            "create",
+            "photo",
+            "map",
+            file = sprintf("images/maps/map-%d.png", params$time_now)
+        )
+        filename <- tempfile(fileext = ".png")
+        png(filename = filename, width = params$img_width, height = params$img_height)
+        print(
+            plot_estimated_trust(
+                length(map_and_devices$devices),
+                map_and_devices$devices,
+                title = "Estimated Trusts of the Observer"
+            )
+        )
+        dev.off()
+        tcltk::tcl("image", "create", "photo", "trustest", file = filename)
+        tcltk::tkconfigure(timelabel, text = sprintf("Current time: %d", params$time_now))
     }
-  }
-  return(img)
+    tcltk::tkdestroy(tt)
 }
 
 
-draw.map <- function(cur.tile) {
-  result <- c(0, 0, 0)
-  if (cur.tile$terrain == WATER) {
-    result <- c(0.063, 0.612, 0.820)
-  } else {
-    result <- c(0.549, 0.761, 0.376)
-  }
-  if (cur.tile$signal.edge) {
+write_map <- function(map, save = TRUE) {
+    cat("Creating map image...\n")
+    npixels <- params$img_width * params$img_height
+    red <- matrix(0, nrow = params$img_height, ncol = params$img_width)
+    green <- matrix(0, nrow = params$img_height, ncol = params$img_width)
+    blue <- matrix(0, nrow = params$img_height, ncol = params$img_width)
+    img <- array(c(red, green, blue), dim = c(params$img_height, params$img_width, 3))
+    width_factor <- ceiling(params$img_width / params$map_width)
+    height_factor <- ceiling(params$img_height / params$map_height)
+    for (i in 1:params$map_height) {
+        for (j in 1:params$map_width) {
+            cur_tile <- map$get_tile(c(i, j))[[1]]
+            for (k in 1:height_factor) {
+                for (l in 1:width_factor) {
+                    img[
+                        (i - 1) * height_factor + k,
+                        (j - 1) * width_factor + l,
+                    ] <- draw_map(cur_tile)
+                }
+            }
+        }
+        cat_progress(
+            i,
+            params$map_height,
+            prefix = sprintf("Row %d of %d", i, params$map_height)
+        )
+    }
+    if (save) {
+        filename <- sprintf("images/maps/map-%d.png", params$time_now)
+        png::writePNG(img, filename)
+        cat(sprintf("Written %s\n", filename))
+    }
+    return(img)
+}
+
+
+update_map <- function(time, old_locs, new_locs, img, map, save = TRUE) {
+    img <- update_map_locs(old_locs, img, map)
+    img <- update_map_locs(new_locs, img, map)
+    if (save) {
+        filename <- sprintf("images/maps/map-%d.png", time)
+        png::writePNG(img, filename)
+    }
+    return(img)
+}
+
+
+update_map_locs <- function(locs, img, map) {
+    width_factor <- ceiling(params$img_width / params$map_width)
+    height_factor <- ceiling(params$img_height / params$map_height)
+    for (loc in locs) {
+        cur_tile <- map$get_tile(loc)[[1]]
+        for (i in 1:height_factor) {
+            for (j in 1:width_factor) {
+                img[
+                    (loc[[1]] - 1) * height_factor + i, (loc[[2]] - 1)
+                    * width_factor + j,
+                ] <- draw_map(cur_tile)
+            }
+        }
+    }
+    return(img)
+}
+
+
+draw_map <- function(cur_tile) {
     result <- c(0, 0, 0)
-  }
-  if (length(cur.tile$base.station)) {
-    result <- c(0.2, 0.2, 0.2)
-  }
-  if (cur.tile$has.devices()) {
-    result <- c(1, 0, 1)
-  }
-  return(result)
-}
-
-
-create.map.and.devices <- function(map.filename) {
-  sp <- ServiceProvider()
-  map <- Field(read.csv(map.filename, header = F), T)
-  cat("Creating devices...\n")
-  devices <- lapply(
-    1:params$number.good.nodes,
-    function(i) {
-      cat.progress(
-        i,
-        params$number.good.nodes,
-        prefix = sprintf("Device %d of %d", i, params$number.good.nodes)
-      )
-      return(Device(i, sp, map))
+    if (cur_tile$terrain == WATER) {
+        result <- c(0.063, 0.612, 0.820)
+    } else {
+        result <- c(0.549, 0.761, 0.376)
     }
-  )
-  devices[[length(devices) + 1]] <- Device(length(devices) + 1, sp, map)
-  lapply(
-    1:params$number.good.nodes,
-    function(i) {
-      devices[[i]]$add.contact(
-        sample(
-          setdiff(1:params$number.nodes, i),
-          params$contacts.per.node
-        ),
-        devices
-      )
+    if (cur_tile$signal_edge) {
+        result <- c(0, 0, 0)
     }
-  )
-  devices[[length(devices)]]$add.contact(
-    sample(1:params$number.good.nodes, params$contacts.per.node),
-    devices
-  )
-  return(list(map = map, devices = devices))
-}
-
-
-set.trusts <- function(devices) {
-  for (device in devices) {
-    device$set.trusts()
-  }
-}
-
-
-transact.and.move <- function(devices) {
-  old.locs <- list()
-  new.locs <- list()
-  for (device in devices) {
-    old.locs[[device$id]] <- device$location
-    if (device$has.signal()) {
-      amount.transactions <- 0:round(runif(1, min = 0, max = params$transactions.per.time))
-      for (i in setdiff(amount.transactions, 0)) {
-        device$transaction(devices)
-      }
-      if (length(amount.transactions) > 1) {
-        device$send.rec(devices)
-      }
+    if (length(cur_tile$base_station)) {
+        result <- c(0.2, 0.2, 0.2)
     }
-    device$move()
-    new.locs[[device$id]] <- device$location
-  }
-  return(list(old.locs, new.locs))
+    if (cur_tile$has_devices()) {
+        result <- c(1, 0, 1)
+    }
+    return(result)
 }
 
 
-plot.estimated.trust <- function(
-                                 dev.id,
-                                 devices,
-                                 title = sprintf("Estimated Trusts of Device %d", dev.id)) {
-  data <- data.frame(
-    transactions = 1:length(devices[[dev.id]]$estimated.trusts),
-    estimated.trusts = devices[[dev.id]]$estimated.trusts
-  )
-  plt <- ggplot2::ggplot(data = data, ggplot2::aes(x = transactions, y = estimated.trusts)) +
-    ggplot2::labs(
-      title = title,
-      x = "Time",
-      y = "Estimated Trust",
-      colour = NULL
-    ) +
-    ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
-  return(
-    `if`(
-      length(devices[[dev.id]]$estimated.trusts) > 1,
-      plt + ggplot2::geom_line(colour = "blue"),
-      plt + ggplot2::geom_point(colour = "blue")
+create_map_and_devices <- function(map_filename) {
+    sp <- ServiceProvider()
+    map <- Field(read.csv(map_filename, header = F), T)
+    cat("Creating devices...\n")
+    devices <- lapply(
+        1:params$number_good_nodes,
+        function(i) {
+            cat_progress(
+                i,
+                params$number_good_nodes,
+                prefix = sprintf("Device %d of %d", i, params$number_good_nodes)
+            )
+            return(Device(i, sp, map))
+        }
     )
-  )
+    devices[[length(devices) + 1]] <- Device(length(devices) + 1, sp, map)
+    lapply(
+        1:params$number_good_nodes,
+        function(i) {
+            devices[[i]]$add_contact(
+                sample(
+                    setdiff(1:params$number_nodes, i),
+                    params$contacts_per_node
+                ),
+                devices
+            )
+        }
+    )
+    devices[[length(devices)]]$add_contact(
+        sample(1:params$number_good_nodes, params$contacts_per_node),
+        devices
+    )
+    return(list(map = map, devices = devices))
+}
+
+
+set_trusts <- function(devices) {
+    for (device in devices) {
+        device$set_trusts()
+    }
+}
+
+
+transact_and_move <- function(devices) {
+    old_locs <- list()
+    new_locs <- list()
+    for (device in devices) {
+        old_locs[[device$id]] <- device$location
+        if (device$has_signal()) {
+            amount_transactions <- 0:round(runif(1, min = 0, max = params$transactions_per_time))
+            for (i in setdiff(amount_transactions, 0)) {
+                device$transaction(devices)
+            }
+            if (length(amount_transactions) > 1) {
+                device$send_rec(devices)
+            }
+        }
+        device$move()
+        new_locs[[device$id]] <- device$location
+    }
+    return(list(old_locs, new_locs))
+}
+
+
+plot_estimated_trust <- function(
+                                 dev_id,
+                                 devices,
+                                 title = sprintf("Estimated Trusts of Device %d", dev_id)) {
+    data <- data.frame(
+        transactions = 1:length(devices[[dev_id]]$estimated_trusts),
+        estimated_trusts = devices[[dev_id]]$estimated_trusts
+    )
+    plt <- ggplot2::ggplot(data = data, ggplot2::aes(x = transactions, y = estimated_trusts)) +
+        ggplot2::labs(
+            title = title,
+            x = "Time",
+            y = "Estimated Trust",
+            colour = NULL
+        ) +
+        ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+    return(
+        `if`(
+            length(devices[[dev_id]]$estimated_trusts) > 1,
+            plt + ggplot2::geom_line(colour = "blue"),
+            plt + ggplot2::geom_point(colour = "blue")
+        )
+    )
 }

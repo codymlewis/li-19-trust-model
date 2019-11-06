@@ -3,110 +3,114 @@
 #' @include Tile.R
 
 Field <- setRefClass(
-  "Field",
-  fields = list(
-    tiles = "list"
-  ),
+    "Field",
+    fields = list(
+        tiles = "list"
+    ),
 
-  methods = list(
-    initialize = function(data = NULL, verbose = F) {
-      base.stations <- place.base.stations(params$map.width, params$map.height)
-      tiles <<- list()
-      if (verbose) {
-        cat("Creating field...\n")
-      }
-      for (i in 1:params$map.width) {
-        tiles[[i]] <<- list()
-        for (j in 1:params$map.height) {
-          tiles[[i]][[j]] <<- Tile(
-            `if`(
-              !all(is.null(data)),
-              data[[i]][[j]],
-              `if`(round(runif(1)), 1, 0)
-            )
-          )
-          for (base.station in base.stations) {
-            if (euc.dist(base.station$location, c(i, j)) <= params$signal.radius) {
-              is.edge <- (euc.dist(base.station$location, c(i + 1, j)) > params$signal.radius) ||
-                (euc.dist(base.station$location, c(i, j + 1)) > params$signal.radius) ||
-                (euc.dist(base.station$location, c(i - 1, j)) > params$signal.radius) ||
-                (euc.dist(base.station$location, c(i, j - 1)) > params$signal.radius)
-              tiles[[i]][[j]]$add.signal(
-                base.station,
-                is.edge
-              )
+    methods = list(
+        initialize = function(data = NULL, verbose = F) {
+            base_stations <- place_base_stations(params$map_width, params$map_height)
+            tiles <<- list()
+            if (verbose) {
+                cat("Creating field...\n")
             }
-            if (all(base.station$location == c(i, j))) {
-              tiles[[i]][[j]]$add.base.station(base.station)
+            for (i in 1:params$map_width) {
+                tiles[[i]] <<- list()
+                for (j in 1:params$map_height) {
+                    tiles[[i]][[j]] <<- Tile(
+                        `if`(
+                            !all(is.null(data)),
+                            data[[i]][[j]],
+                            `if`(round(runif(1)), 1, 0)
+                        )
+                    )
+                    for (base_station in base_stations) {
+                        if (euc_dist(base_station$location, c(i, j)) <= params$signal_radius) {
+                            is_edge <- (euc_dist(base_station$location, c(i + 1, j)) >
+                                        params$signal_radius) ||
+                                (euc_dist(base_station$location, c(i, j + 1)) >
+                                 params$signal_radius) ||
+                                (euc_dist(base_station$location, c(i - 1, j)) >
+                                 params$signal_radius) ||
+                                (euc_dist(base_station$location, c(i, j - 1)) >
+                                 params$signal_radius)
+                            tiles[[i]][[j]]$add_signal(
+                                base_station,
+                                is_edge
+                            )
+                        }
+                        if (all(base_station$location == c(i, j))) {
+                            tiles[[i]][[j]]$add_base_station(base_station)
+                        }
+                    }
+                }
+                if (verbose) {
+                    cat_progress(
+                        i,
+                        params$map_width,
+                        prefix = sprintf("Column %d of %d", i, params$map_width)
+                    )
+                }
             }
-          }
+            grid_connect(.self, base_stations)
+        },
+
+        size = function() {
+            "Get the size of the field"
+            return(length(tiles))
+        },
+
+        shape = function() {
+            "Get the shape of the field"
+            return(c(length(tiles[[1]]), length(tiles)))
+        },
+
+        get_tile = function(location) {
+            "Get the tile at the location if there is one, otherwise NA"
+            if (all(location <= shape()) && all(location > c(0, 0))) {
+                return(list(tiles[[location[[1]]]][[location[[2]]]]))
+            }
+            return(list())
         }
-        if (verbose) {
-          cat.progress(
-            i,
-            params$map.width,
-            prefix = sprintf("Column %d of %d", i, params$map.width)
-          )
-        }
-      }
-      grid.connect(.self, base.stations)
-    },
-
-    size = function() {
-      "Get the size of the field"
-      return(length(tiles))
-    },
-
-    shape = function() {
-      "Get the shape of the field"
-      return(c(length(tiles[[1]]), length(tiles)))
-    },
-
-    get.tile = function(location) {
-      "Get the tile at the location if there is one, otherwise NA"
-      if (all(location <= shape()) && all(location > c(0, 0))) {
-        return(list(tiles[[location[[1]]]][[location[[2]]]]))
-      }
-      return(list())
-    }
-  )
+    )
 )
 
 
 # Place the base stations on a rectangle such that the signals cover the
 # entirety of the rectangle
-place.base.stations <- function(width, height) {
-  gap <- compute.gap(params$signal.radius)
-  base.stations <- list()
+place_base_stations <- function(width, height) {
+    gap <- compute_gap(params$signal_radius)
+    base_stations <- list()
 
-  for (i in seq(min(width / 2, gap), width, gap)) {
-    for (j in seq(min(height / 2, gap), height, gap)) {
-      base.stations[[length(base.stations) + 1]] <- BaseStation(i, j)
+    for (i in seq(min(width / 2, gap), width, gap)) {
+        for (j in seq(min(height / 2, gap), height, gap)) {
+            base_stations[[length(base_stations) + 1]] <- BaseStation(i, j)
+        }
     }
-  }
 
-  return(base.stations)
+    return(base_stations)
 }
 
 
-grid.connect <- function(field, base.stations) {
-  gap <- compute.gap(params$signal.radius)
-  for (base.station in base.stations) {
-    cur.loc <- base.station$location
-    other.tile <- field$get.tile(cur.loc - c(gap, 0))
-    if (length(other.tile)) {
-      other.station <- other.tile[[1]]$get.base.station()
-      check.and.add.neighbour(base.station, other.station)
+grid_connect <- function(field, base_stations) {
+    gap <- compute_gap(params$signal_radius)
+    for (base_station in base_stations) {
+        cur_loc <- base_station$location
+        other_tile <- field$get_tile(cur_loc - c(gap, 0))
+        if (length(other_tile)) {
+            other_station <- other_tile[[1]]$get_base_station()
+            check_and_add_neighbour(base_station, other_station)
+        }
+        other_tile <- field$get_tile(cur_loc - c(0, gap))
+        if (length(other_tile)) {
+            other_station <- other_tile[[1]]$get_base_station()
+            check_and_add_neighbour(base_station, other_station)
+        }
     }
-    other.tile <- field$get.tile(cur.loc - c(0, gap))
-    if (length(other.tile)) {
-      other.station <- other.tile[[1]]$get.base.station()
-      check.and.add.neighbour(base.station, other.station)
-    }
-  }
 }
 
 
-check.and.add.neighbour <- function(base.station, other.station) {
-  base.station$add.neighbour(other.station)
+check_and_add_neighbour <- function(base_station, other_station) {
+    base_station$add_neighbour(other_station)
 }

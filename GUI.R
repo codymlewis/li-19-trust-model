@@ -2,9 +2,8 @@
 
 library(li19trustmodel)
 
-main <- function()
-{
-    run.gui()
+main <- function() {
+    run_gui()
 }
 
 main()

@@ -19,7 +19,7 @@ deps:
 	if (!require(devtools)) { \
 	install.packages('devtools'); \
 	};\
-	install.packages(c('png', 'ggplot2', 'tcltk2'))"
+	install.packages(c('png', 'ggplot2', 'tcltk2', 'styler', 'R6'))"
 
 check:
 	R -e "devtools::check()"
@@ -34,6 +34,9 @@ build:
 
 atts:
 	R -e "Rcpp::compileAttributes()"
+
+style:
+	R -e "styler::style_pkg(indent_by=4)"
 
 ref:
 	R CMD Rd2pdf .

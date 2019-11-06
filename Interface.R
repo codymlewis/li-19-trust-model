@@ -2,9 +2,8 @@
 
 library(li19trustmodel)
 
-main <- function()
-{
-    run.simulation(500)
+main <- function() {
+    run_simulation(500)
     quit("no")
 }
 

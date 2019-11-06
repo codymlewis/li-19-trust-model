@@ -1,22 +1,22 @@
 #' @include Device.R
 
 Observer <- setRefClass(
-  "Observer",
-  contains = "Device",
+    "Observer",
+    contains = "Device",
 
-  methods = list(
-    transaction = function(devices) {
-      "Perform a transaction with a service provider"
-      normalized.c.target <- normalize(get.target.context())
-      used.trust <- find.indirect.trust(normalized.c.target)
-      prev.est.trust <- tail(estimated.trusts, 1)
-      for (i in length(estimated.trusts):params$time.now) {
-        if (i < params$time.now) {
-          estimated.trusts[[i]] <<- prev.est.trust
-        } else {
-          estimated.trusts[[i]] <<- used.trust
+    methods = list(
+        transaction = function(devices) {
+            "Perform a transaction with a service provider"
+            normalized_c.target <- normalize(get_target_context())
+            used_trust <- find_indirect_trust(normalized_c.target)
+            prev_est_trust <- tail(estimated_trusts, 1)
+            for (i in length(estimated_trusts):params$time_now) {
+                if (i < params$time_now) {
+                    estimated_trusts[[i]] <<- prev_est_trust
+                } else {
+                    estimated_trusts[[i]] <<- used_trust
+                }
+            }
         }
-      }
-    }
-  )
+    )
 )

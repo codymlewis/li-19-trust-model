@@ -3,28 +3,28 @@ UNKNOWN <- 1
 DISTRUST <- 2
 
 ServiceProvider <- setRefClass(
-  "ServiceProvider",
-  fields = list(
-    id = "numeric",
-    location = "numeric",
-    transaction.results = "numeric"
-  ),
+    "ServiceProvider",
+    fields = list(
+        id = "numeric",
+        location = "numeric",
+        transaction_results = "numeric"
+    ),
 
-  methods = list(
-    initialize = function(id = 1, p.trust = 1, p.unknown = 0, p.distrust = 0) {
-      id <<- id
-      location <<- round(runif(2, min = 1, max = c(params$map.width, params$map.height)))
-      p.vals <- c(p.trust, p.unknown, p.distrust)
-      sample.factor <- 10**(1 - floor(log(min(p.vals[p.vals != 0]), base = 10)))
-      transaction.results <<- c(
-        rep(TRUSTED, p.trust * sample.factor),
-        rep(UNKNOWN, p.unknown * sample.factor),
-        rep(DISTRUST, p.distrust * sample.factor)
-      )
-    },
+    methods = list(
+        initialize = function(id = 1, p_trust = 1, p_unknown = 0, p_distrust = 0) {
+            id <<- id
+            location <<- round(runif(2, min = 1, max = c(params$map_width, params$map_height)))
+            p_vals <- c(p_trust, p_unknown, p_distrust)
+            sample_factor <- 10**(1 - floor(log(min(p_vals[p_vals != 0]), base = 10)))
+            transaction_results <<- c(
+                rep(TRUSTED, p_trust * sample_factor),
+                rep(UNKNOWN, p_unknown * sample_factor),
+                rep(DISTRUST, p_distrust * sample_factor)
+            )
+        },
 
-    provide.service = function() {
-      return(sample(transaction.results, 1))
-    }
-  )
+        provide_service = function() {
+            return(sample(transaction_results, 1))
+        }
+    )
 )

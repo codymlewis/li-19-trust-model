@@ -1,37 +1,37 @@
 normalize <- function(context) {
-  normalizers <- c(
-    normalize.time,
-    normalize.capability,
-    normalize.location,
-    normalize.velocity
-  )
-
-  return(
-    sapply(
-      1:length(context),
-      function(i) {
-        normalizers[[i]](context[[i]])
-      }
+    normalizers <- c(
+        normalize_time,
+        normalize_capability,
+        normalize_location,
+        normalize_velocity
     )
-  )
+
+    return(
+        sapply(
+            1:length(context),
+            function(i) {
+                normalizers[[i]](context[[i]])
+            }
+        )
+    )
 }
 
 
-normalize.time <- function(time) {
-  return(time)
+normalize_time <- function(time) {
+    return(time)
 }
 
 
-normalize.capability <- function(capability) {
-  return(1 - (capability / params$max.capability))
+normalize_capability <- function(capability) {
+    return(1 - (capability / params$max_capability))
 }
 
 
-normalize.location <- function(distance) {
-  return(1 - (distance / sqrt(params$map.width**2 + params$map.height**2)))
+normalize_location <- function(distance) {
+    return(1 - (distance / sqrt(params$map_width**2 + params$map_height**2)))
 }
 
 
-normalize.velocity <- function(velocity) {
-  return(1 - (velocity / params$max.velocity))
+normalize_velocity <- function(velocity) {
+    return(1 - (velocity / params$max_velocity))
 }
