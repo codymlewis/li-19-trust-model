@@ -2,7 +2,7 @@ test_that("time normalizer works", {
     time <- 5
     expect_that(
         time,
-        equals(normalize.time(time))
+        equals(normalize_time(time))
     )
 })
 
@@ -10,8 +10,8 @@ test_that("time normalizer works", {
 test_that("capability normalizer works", {
     cap <- 70
     expect_that(
-        1 - (cap / params$max.capability),
-        equals(normalize.capability(cap))
+        1 - (cap / params$max_capability),
+        equals(normalize_capability(cap))
     )
 })
 
@@ -19,8 +19,8 @@ test_that("capability normalizer works", {
 test_that("location normalizer works", {
     loc <- 30
     expect_that(
-        1 - (loc / sqrt(params$map.width**2 + params$map.height**2)),
-        equals(normalize.location(loc))
+        1 - (loc / sqrt(params$map_width**2 + params$map_height**2)),
+        equals(normalize_location(loc))
     )
 })
 
@@ -28,8 +28,8 @@ test_that("location normalizer works", {
 test_that("velocity normalizer works", {
     vel <- 5
     expect_that(
-        1 - (vel / params$max.velocity),
-        equals(normalize.velocity(vel))
+        1 - (vel / params$max_velocity),
+        equals(normalize_velocity(vel))
     )
 })
 
@@ -42,9 +42,9 @@ test_that("context normalizer works", {
     expect_that(
         c(
             time,
-            1 - (cap / params$max.capability),
-            1 - (loc / sqrt(params$map.width**2 + params$map.height**2)),
-            1 - (vel / params$max.velocity)
+            1 - (cap / params$max_capability),
+            1 - (loc / sqrt(params$map_width**2 + params$map_height**2)),
+            1 - (vel / params$max_velocity)
         ),
         equals(normalize(c(time, cap, loc, vel)))
     )

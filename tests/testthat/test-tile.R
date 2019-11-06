@@ -3,26 +3,26 @@ test_that("terrain assignment works", {
 })
 
 test_that("device storing works", {
-    params$number.nodes <<- 200
+    params$number_nodes <<- 200
     sp <- ServiceProvider()
     d <- Device(1, sp, NULL)
     t <- Tile(LAND)
-    t$add.device(d)
+    t$add_device(d)
     expect_equal(t$objects[[d$id]]$id, d$id)
-    t$rm.device(d$id)
-    expect_false(t$has.devices())
+    t$rm_device(d$id)
+    expect_false(t$has_devices())
 })
 
 test_that("base station storing works", {
     b <- BaseStation(1, 1)
     t <- Tile(LAND)
-    t$add.base.station(b)
-    expect_equal(c(1, 1), t$get.base.station()$location)
+    t$add_base_station(b)
+    expect_equal(c(1, 1), t$get_base_station()$location)
 })
 
 test_that("signal works", {
     b <- BaseStation(1, 1)
     t <- Tile(LAND)
-    t$add.signal(b, F)
+    t$add_signal(b, F)
     expect_equal(c(1, 1), t$signals[[1]]$location)
 })
