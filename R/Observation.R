@@ -1,16 +1,14 @@
-Observation <- setRefClass(
+Observation <- R6::R6Class(
     "Observation",
-    fields = list(
-        context = "numeric",
-        trust = "numeric",
-        id_sender = "numeric"
-    ),
+    list(
+        context = NULL,
+        trust = NULL,
+        id_sender = NULL,
 
-    methods = list(
         initialize = function(context, trust, id_sender) {
-            context <<- context
-            trust <<- trust
-            id_sender <<- id_sender
+            self$context <- context
+            self$trust <- trust
+            self$id_sender <- id_sender
         }
     )
 )

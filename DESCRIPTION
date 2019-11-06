@@ -12,7 +12,8 @@ Imports:
     Rcpp,
     ggplot2,
     png,
-    tcltk2
+    tcltk2,
+    R6
 License: What license it uses
 Encoding: UTF-8
 LazyData: true

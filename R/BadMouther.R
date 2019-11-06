@@ -1,13 +1,13 @@
 #' @include Device.R
 
-BadMouther <- setRefClass(
+BadMouther <- R6::R6Class(
     "BadMouther",
-    contains = "Device",
+    inherit = Device,
 
-    methods = list(
+    public = list(
         send_rec = function(devices) {
             emit_observation(
-                Observation(
+                Observation$new(
                     contexts[[id]][get_context_index(params$time_now)],
                     -1,
                     id

@@ -2,23 +2,21 @@
 #' @include Functions.R
 #' @include Tile.R
 
-Field <- setRefClass(
+Field <- R6::R6Class(
     "Field",
-    fields = list(
-        tiles = "list"
-    ),
+    list(
+        tiles = list(),
 
-    methods = list(
         initialize = function(data = NULL, verbose = F) {
             base_stations <- place_base_stations(params$map_width, params$map_height)
-            tiles <<- list()
+            self$tiles <- list()
             if (verbose) {
                 cat("Creating field...\n")
             }
             for (i in 1:params$map_width) {
-                tiles[[i]] <<- list()
+                self$tiles[[i]] <- list()
                 for (j in 1:params$map_height) {
-                    tiles[[i]][[j]] <<- Tile(
+                    self$tiles[[i]][[j]] <<- Tile$new(
                         `if`(
                             !all(is.null(data)),
                             data[[i]][[j]],
@@ -28,20 +26,20 @@ Field <- setRefClass(
                     for (base_station in base_stations) {
                         if (euc_dist(base_station$location, c(i, j)) <= params$signal_radius) {
                             is_edge <- (euc_dist(base_station$location, c(i + 1, j)) >
-                                        params$signal_radius) ||
+                                params$signal_radius) ||
                                 (euc_dist(base_station$location, c(i, j + 1)) >
-                                 params$signal_radius) ||
+                                    params$signal_radius) ||
                                 (euc_dist(base_station$location, c(i - 1, j)) >
-                                 params$signal_radius) ||
+                                    params$signal_radius) ||
                                 (euc_dist(base_station$location, c(i, j - 1)) >
-                                 params$signal_radius)
-                            tiles[[i]][[j]]$add_signal(
+                                    params$signal_radius)
+                            self$tiles[[i]][[j]]$add_signal(
                                 base_station,
                                 is_edge
                             )
                         }
                         if (all(base_station$location == c(i, j))) {
-                            tiles[[i]][[j]]$add_base_station(base_station)
+                            self$tiles[[i]][[j]]$add_base_station(base_station)
                         }
                     }
                 }
@@ -53,23 +51,23 @@ Field <- setRefClass(
                     )
                 }
             }
-            grid_connect(.self, base_stations)
+            grid_connect(self, base_stations)
         },
 
         size = function() {
             "Get the size of the field"
-            return(length(tiles))
+            return(length(self$tiles))
         },
 
         shape = function() {
             "Get the shape of the field"
-            return(c(length(tiles[[1]]), length(tiles)))
+            return(c(length(self$tiles[[1]]), length(self$tiles)))
         },
 
         get_tile = function(location) {
             "Get the tile at the location if there is one, otherwise NA"
-            if (all(location <= shape()) && all(location > c(0, 0))) {
-                return(list(tiles[[location[[1]]]][[location[[2]]]]))
+            if (all(location <= self$shape()) && all(location > c(0, 0))) {
+                return(list(self$tiles[[location[[1]]]][[location[[2]]]]))
             }
             return(list())
         }
@@ -85,7 +83,7 @@ place_base_stations <- function(width, height) {
 
     for (i in seq(min(width / 2, gap), width, gap)) {
         for (j in seq(min(height / 2, gap), height, gap)) {
-            base_stations[[length(base_stations) + 1]] <- BaseStation(i, j)
+            base_stations[[length(base_stations) + 1]] <- BaseStation$new(i, j)
         }
     }
 

@@ -1,22 +1,26 @@
 #' @include Device.R
 
-Observer <- setRefClass(
+Observer <- R6::R6Class(
     "Observer",
-    contains = "Device",
+    inherit = Device,
 
-    methods = list(
+    public = list(
         transaction = function(devices) {
             "Perform a transaction with a service provider"
-            normalized_c.target <- normalize(get_target_context())
-            used_trust <- find_indirect_trust(normalized_c.target)
-            prev_est_trust <- tail(estimated_trusts, 1)
-            for (i in length(estimated_trusts):params$time_now) {
+            normalized_c_target <- normalize(self$get_target_context())
+            used_trust <- self$find_indirect_trust(normalized_c_target)
+            prev_est_trust <- tail(self$estimated_trusts, 1)
+            for (i in length(self$estimated_trusts):params$time_now) {
                 if (i < params$time_now) {
-                    estimated_trusts[[i]] <<- prev_est_trust
+                    self$estimated_trusts[[i]] <- prev_est_trust
                 } else {
-                    estimated_trusts[[i]] <<- used_trust
+                    self$estimated_trusts[[i]] <- used_trust
                 }
             }
+        },
+
+        send_rec = function(devices) {
+
         }
     )
 )
