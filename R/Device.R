@@ -138,21 +138,6 @@ Device <- R6::R6Class(
             }
         },
 
-        # trust_increment = function(contact_id) {
-        #     "Increment the trust count of the service provider"
-        #     self$trust[[contact_id]] <- self$trust[[contact_id]] + 1
-        # },
-        #
-        # distrust_increment = function(contact_id) {
-        #     "Increment the distrust count of the service provider"
-        #     self$distrust[[contact_id]] <- self$distrust[[contact_id]] + 1
-        # },
-        #
-        # unknown_increment = function(contact_id) {
-        #     "Increment the unknown count of the service provider"
-        #     self$unknown[[contact_id]] <- self$unknown[[contact_id]] + 1
-        # },
-
         sp_trust_increment = function() {
             "Increment the trust count of the service provider"
             self$sp_trust <- self$sp_trust + 1

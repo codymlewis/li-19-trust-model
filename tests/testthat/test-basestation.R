@@ -1,6 +1,6 @@
 test_that("add neighbour works", {
-    b1 <- BaseStation(1, 1)
-    b2 <- BaseStation(2, 2)
+    b1 <- BaseStation$new(1, 1)
+    b2 <- BaseStation$new(2, 2)
     b1$add_neighbour(b2)
     expect_equal(c(1, 1), b2$neighbours[[1]]$location)
     expect_equal(c(2, 2), b1$neighbours[[1]]$location)
@@ -9,13 +9,13 @@ test_that("add neighbour works", {
 
 test_that("routing works", {
     params$number_nodes <<- 2
-    b1 <- BaseStation(1, 1)
-    b2 <- BaseStation(2, 2)
-    b3 <- BaseStation(3, 3)
+    b1 <- BaseStation$new(1, 1)
+    b2 <- BaseStation$new(2, 2)
+    b3 <- BaseStation$new(3, 3)
     b1$add_neighbour(b2)
     b2$add_neighbour(b3)
-    sp <- ServiceProvider()
-    d <- Device(1, sp, NULL)
+    sp <- ServiceProvider$new()
+    d <- Device$new(1, sp, NULL)
     b1$connect(d)
     expect_equal(b1$table$hops[[d$id]], 0)
     expect_equal(b2$table$hops[[d$id]], Inf)
