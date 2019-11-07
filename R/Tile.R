@@ -2,6 +2,7 @@ Tile <- R6::R6Class(
     "Tile",
     list(
         objects = list(),
+        obj_ids = NULL,
         signals = list(),
         terrain = NULL,
         base_station = list(),
@@ -14,6 +15,7 @@ Tile <- R6::R6Class(
         add_device = function(device) {
             "Add a device here"
             self$objects[[device$id]] <- device
+            self$obj_ids <- c(self$obj_ids, device$id)
         },
 
         add_base_station = function(base_station) {
@@ -29,16 +31,24 @@ Tile <- R6::R6Class(
         rm_device = function(id) {
             "Remove a device from here"
             self$objects[[id]] <- 0
+            self$obj_ids <- self$obj_ids[self$obj_ids != id]
         },
 
         has_devices = function() {
             "TRUE if there are devices on this tile, else FALSE"
-            for (object in self$objects) {
-                if (!is.numeric(object) && !is.null(object)) {
-                    return(TRUE)
+            if (!is.null(self$obj_ids)) {
+                for (obj_id in self$obj_ids) {
+                    if (!is.numeric(self$objects[obj_id]) &&
+                        !is.null(self$objects[obj_id])) {
+                        return(TRUE)
+                    }
                 }
             }
             return(FALSE)
+        },
+
+        get_first_dev = function() {
+            return(self$objects[[self$obj_ids[[1]]]])
         },
 
         add_signal = function(base_station, is_edge) {

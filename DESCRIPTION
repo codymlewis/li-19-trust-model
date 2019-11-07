@@ -9,7 +9,6 @@ Authors@R:
 Description: Simulate The Trust Model Proposed In Context-Aware Trust
     Management System for IoT Applications with Multiple Domains
 Imports:
-    Rcpp,
     ggplot2,
     png,
     tcltk2,
@@ -20,8 +19,6 @@ LazyData: true
 RoxygenNote: 6.1.1
 Suggests:
     testthat (>= 2.1.0)
-LinkingTo:
-    Rcpp
 Collate:
     'Tile.R'
     'Functions.R'
@@ -34,6 +31,6 @@ Collate:
     'Device.R'
     'BadMouther.R'
     'BaseStation.R'
+    'Globals.R'
     'Observer.R'
     'Simulation.R'
-    'li19trustmodel-package.R'

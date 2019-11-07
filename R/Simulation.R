@@ -62,7 +62,6 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     img <- write_map(map_and_devices$map)
     map_filename <- sprintf("images/maps/map-%d.png", params$time_now)
     cat("Performing transactions...\n")
-    tlabel <- NULL
     tt <- tcltk::tktoplevel()
     tcltk::tcl(
         "image",
@@ -104,7 +103,11 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
         set_trusts(map_and_devices$devices)
         movements <- transact_and_move(map_and_devices$devices)
         img <- update_map(
-            params$time_now, movements[[1]], movements[[2]], img, map_and_devices$map
+            params$time_now,
+            movements[[1]],
+            movements[[2]],
+            img,
+            map_and_devices$map
         )
         tcltk::tcl(
             "image",
@@ -136,7 +139,10 @@ write_map <- function(map, save = TRUE) {
     red <- matrix(0, nrow = params$img_height, ncol = params$img_width)
     green <- matrix(0, nrow = params$img_height, ncol = params$img_width)
     blue <- matrix(0, nrow = params$img_height, ncol = params$img_width)
-    img <- array(c(red, green, blue), dim = c(params$img_height, params$img_width, 3))
+    img <- array(
+        c(red, green, blue),
+        dim = c(params$img_height, params$img_width, 3)
+    )
     width_factor <- ceiling(params$img_width / params$map_width)
     height_factor <- ceiling(params$img_height / params$map_height)
     for (i in 1:params$map_height) {
@@ -209,7 +215,12 @@ draw_map <- function(cur_tile) {
         result <- c(0.2, 0.2, 0.2)
     }
     if (cur_tile$has_devices()) {
-        result <- c(1, 0, 1)
+        dev_class <- class(cur_tile$get_first_dev())[[1]]
+        if (grepl("Device", dev_class) || grepl("Observer", dev_class)) {
+            result <- c(1, 0, 1)
+        } else {
+            result <- c(1, 0, 0)
+        }
     }
     return(result)
 }
@@ -220,7 +231,7 @@ create_map_and_devices <- function(map_filename) {
     map <- Field$new(read.csv(map_filename, header = F), T)
     cat("Creating devices...\n")
     devices <- lapply(
-        1:params$number_good_nodes,
+        seq_len(params$number_good_nodes),
         function(i) {
             cat_progress(
                 i,
@@ -230,7 +241,11 @@ create_map_and_devices <- function(map_filename) {
             return(Device$new(i, sp, map))
         }
     )
-    devices[[length(devices) + 1]] <- Device$new(length(devices) + 1, sp, map)
+    for (i in seq_len(params$number_adversaries)) {
+        dev_id <- params$number_good_nodes + i
+        devices[[dev_id]] <- BadMouther$new(dev_id, sp, map)
+    }
+    devices[[length(devices) + 1]] <- Observer$new(length(devices) + 1, sp, map)
     lapply(
         1:params$number_good_nodes,
         function(i) {
@@ -244,7 +259,10 @@ create_map_and_devices <- function(map_filename) {
         }
     )
     devices[[length(devices)]]$add_contact(
-        sample(1:params$number_good_nodes, params$contacts_per_node),
+        c(
+            sample(1:params$number_good_nodes, params$contacts_per_node),
+            (params$number_good_nodes + 1):(params$number_good_nodes + params$number_adversaries)
+        ),
         devices
     )
     return(list(map = map, devices = devices))
@@ -264,11 +282,13 @@ transact_and_move <- function(devices) {
     for (device in devices) {
         old_locs[[device$id]] <- device$location
         if (device$has_signal()) {
-            amount_transactions <- 0:round(runif(1, min = 0, max = params$transactions_per_time))
+            amount_transactions <- params$min_trans:round(
+                runif(1, min = params$min_trans, max = params$max_trans)
+            )
             for (i in setdiff(amount_transactions, 0)) {
                 device$transaction(devices)
             }
-            if (length(amount_transactions) > 1) {
+            if (length(setdiff(amount_transactions, 0)) >= 1) {
                 device$send_rec(devices)
             }
         }
@@ -284,7 +304,7 @@ plot_estimated_trust <- function(
                                  devices,
                                  title = sprintf("Estimated Trusts of Device %d", dev_id)) {
     data <- data.frame(
-        transactions = 1:length(devices[[dev_id]]$estimated_trusts),
+        transactions = seq_len(length(devices[[dev_id]]$estimated_trusts)),
         estimated_trusts = devices[[dev_id]]$estimated_trusts
     )
     plt <- ggplot2::ggplot(data = data, ggplot2::aes(x = transactions, y = estimated_trusts)) +
@@ -293,8 +313,8 @@ plot_estimated_trust <- function(
             x = "Time",
             y = "Estimated Trust",
             colour = NULL
-        ) +
-        ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+        ) # +
+    # ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
     return(
         `if`(
             length(devices[[dev_id]]$estimated_trusts) > 1,

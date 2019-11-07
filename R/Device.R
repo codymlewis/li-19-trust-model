@@ -198,7 +198,7 @@ Device <- R6::R6Class(
             return(
                 recced_trust > (params$delta_a - params$trust_rep_adj_range) |
                     sapply(
-                        1:length(transaction_num),
+                        seq_len(length(transaction_num)),
                         function(i) {
                             acceptable_rec(
                                 self$cached_contexts[[id_sender]],
@@ -603,7 +603,7 @@ Device <- R6::R6Class(
             "Communicate with a random contact"
             this_tile <- self$map[[1]]$get_tile(self$location)[[1]]
             best_signal <- 1
-            for (i in 1:length(this_tile$signals)) {
+            for (i in seq_len(length(this_tile$signals))) {
                 if (this_tile$signals[[i]]$table$hops[[contact_id]] <=
                     this_tile$signals[[best_signal]]$table$hops[[contact_id]]) {
                     best_signal <- i

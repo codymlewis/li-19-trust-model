@@ -6,11 +6,11 @@ BadMouther <- R6::R6Class(
 
     public = list(
         send_rec = function(devices) {
-            emit_observation(
+            self$emit_observation(
                 Observation$new(
-                    contexts[[id]][get_context_index(params$time_now)],
+                    self$contexts[[self$id]][get_context_index(params$time_now)],
                     -1,
-                    id
+                    self$id
                 )
             )
         }

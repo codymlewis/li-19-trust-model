@@ -1,12 +1,8 @@
-LAND <- 0
-WATER <- 1
-AIR <- 2
-
 Params <- R6::R6Class(
     "Params",
     list(
         # number_nodes = 200,
-        number_nodes = 21,
+        number_nodes = 0,
         number_good_nodes = 20,
         number_service_providers = 1,
         signal_radius = 100,
@@ -41,7 +37,8 @@ Params <- R6::R6Class(
         impact_factor = 1,
         eta_i = 1,
         gap_factor = 2**-1,
-        transactions_per_time = 3,
+        min_trans = 1,
+        max_trans = 1,
         ignore_bad_rec_time = 200,
         # img_width = 1000,
         # img_height = 1000,
@@ -50,12 +47,15 @@ Params <- R6::R6Class(
         compression_factor = Inf,
         # compression_factor = 5,
         # contacts_per_node = sqrt(min(params$max_number_contacts, params$number_nodes - 1)),
-        contacts_per_node = 10,
+        number_adversaries = 0,
+        contacts_per_node = 15,
+
+        initialize = function() {
+            self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1
+        },
 
         increment_time = function() {
             self$time_now <- self$time_now + 1
         }
     )
 )
-
-params <- Params$new()

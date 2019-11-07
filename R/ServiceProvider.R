@@ -1,7 +1,3 @@
-TRUSTED <- 0
-UNKNOWN <- 1
-DISTRUST <- 2
-
 ServiceProvider <- R6::R6Class(
     "ServiceProvider",
     list(

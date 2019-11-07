@@ -1,5 +1,0 @@
-#include "Device.h"
-
-li19trustmodel::Device::Device() {
-
-}

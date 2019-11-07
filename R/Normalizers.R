@@ -8,7 +8,7 @@ normalize <- function(context) {
 
     return(
         sapply(
-            1:length(context),
+            seq_len(length(context)),
             function(i) {
                 normalizers[[i]](context[[i]])
             }
