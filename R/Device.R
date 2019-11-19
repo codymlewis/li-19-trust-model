@@ -361,6 +361,19 @@ Device <- R6::R6Class(
 
         get_target_context = function() {
             "Get the current target context"
+            if (params$rand_context) {
+                return(
+                    c(
+                        params$time_now,
+                        runif(1, min = 0, max = params$max_capability),
+                        euc_dist(
+                            round(runif(2, min = 1, max = self$map[[1]]$size())),
+                            self$service_provider$location
+                        ),
+                        runif(1, min = 0, max = params$max_velocity)
+                    )
+                )
+            }
             return(
                 c(
                     params$time_now,
