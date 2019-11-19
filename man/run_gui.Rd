@@ -4,8 +4,9 @@
 \alias{run_gui}
 \title{Run the simulation in a graphical interface}
 \usage{
-run_gui(map_filename = system.file("extdata", "map.csv", package =
-  "li19trustmodel"))
+run_gui(
+  map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")
+)
 }
 \description{
 Simulate the trust model and the mobile network and iterate

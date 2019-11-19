@@ -11,7 +11,9 @@ ServiceProvider <- R6::R6Class(
                 runif(2, min = 1, max = c(params$map_width, params$map_height))
             )
             p_vals <- c(p_trust, p_unknown, p_distrust)
-            sample_factor <- 10**(1 - floor(log(min(p_vals[p_vals != 0]), base = 10)))
+            sample_factor <- 10** (
+                1 - floor(log(min(p_vals[p_vals != 0]), base = 10))
+            )
             self$transaction_results <- c(
                 rep(TRUSTED, p_trust * sample_factor),
                 rep(UNKNOWN, p_unknown * sample_factor),

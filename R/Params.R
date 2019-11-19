@@ -39,7 +39,7 @@ Params <- R6::R6Class(
         gap_factor = 2**-1,
         min_trans = 1,
         max_trans = 1,
-        ignore_bad_rec_time = 200,
+        # ignore_bad_rec_time = 200,
         # img_width = 1000,
         # img_height = 1000,
         img_width = 500,
@@ -47,7 +47,7 @@ Params <- R6::R6Class(
         compression_factor = Inf,
         # compression_factor = 5,
         # contacts_per_node = sqrt(min(params$max_number_contacts, params$number_nodes - 1)),
-        number_adversaries = 0,
+        number_adversaries = 5,
         contacts_per_node = 15,
 
         initialize = function() {

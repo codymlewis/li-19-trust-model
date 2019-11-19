@@ -18,14 +18,14 @@ cat_progress <- function(current, total, progress_len = 31, prefix = "", postfix
             progress_bar,
             `if`(
                 progress_bar_progress - 2 > 0,
-                rep("=", progress_bar_progress - 2), ""
-            ),
-            `if`(unprogressed > 0, ">", "=")
+                rep("█", progress_bar_progress - 2),
+                ""
+            )
         ),
         collapse = ""
     )
 
-    progress_bar <- paste(c(progress_bar, rep(".", unprogressed), "]"), collapse = "")
+    progress_bar <- paste(c(progress_bar, rep(" ", unprogressed), "]"), collapse = "")
     progress_percent <- paste(c(progress, "%"), collapse = "")
     postfix <- paste(c(postfix, `if`(progress == 100, "\n", "")), collapse = "")
 

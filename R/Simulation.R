@@ -243,9 +243,9 @@ create_map_and_devices <- function(map_filename) {
     )
     for (i in seq_len(params$number_adversaries)) {
         dev_id <- params$number_good_nodes + i
-        devices[[dev_id]] <- BadMouther$new(dev_id, sp, map)
+        devices[[dev_id]] <- ContextSetter$new(dev_id, sp, map)
     }
-    devices[[length(devices) + 1]] <- Observer$new(length(devices) + 1, sp, map)
+    devices[[length(devices) + 1]] <- Device$new(length(devices) + 1, sp, map)
     lapply(
         1:params$number_good_nodes,
         function(i) {
@@ -313,8 +313,8 @@ plot_estimated_trust <- function(
             x = "Time",
             y = "Estimated Trust",
             colour = NULL
-        ) # +
-    # ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+        ) +
+    ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
     return(
         `if`(
             length(devices[[dev_id]]$estimated_trusts) > 1,

@@ -38,13 +38,17 @@ compute_trust <- function(trust, distrust, unknown) {
     if ((prob_trust > prob_unknown) && (prob_unknown >= prob_distrust)) {
         return(1 - compute_entropy(c(prob_trust, prob_distrust, prob_unknown)))
     } else if ((prob_trust > prob_distrust) && (prob_distrust > prob_unknown)) {
-        return(1 - abs(ent_unit(prob_trust) + ent_unit_div(prob_unknown + prob_distrust, 2)))
+        return(1 - abs(ent_unit(prob_trust) +
+                       ent_unit_div(prob_unknown + prob_distrust, 2)))
     } else if (prob_unknown >= max(prob_trust, prob_distrust)) {
-        return(abs(ent_unit(prob_trust) + ent_unit_div(prob_unknown + prob_distrust, 2)) - 1)
-    } else if ((prob_distrust >= prob_unknown) && (prob_unknown >= prob_trust)) {
+        return(abs(ent_unit(prob_trust) +
+                   ent_unit_div(prob_unknown + prob_distrust, 2)) - 1)
+    } else if ((prob_distrust >= prob_unknown) &&
+               (prob_unknown >= prob_trust)) {
         return(compute_entropy(c(prob_trust, prob_distrust, prob_unknown)) - 1)
     } else {
-        return(abs(ent_unit(prob_distrust) + ent_unit_div(prob_unknown + prob_trust, 2)) - 1)
+        return(abs(ent_unit(prob_distrust) +
+                   ent_unit_div(prob_unknown + prob_trust, 2)) - 1)
     }
 }
 
@@ -53,7 +57,8 @@ compute_trust <- function(trust, distrust, unknown) {
 weighted_avg_context <- function(contexts) {
     context_latest <- tail(contexts, 1)
     factor_forget <- params$theta_i**abs(context_latest - head(contexts, -1))
-    return((context_latest + sum(factor_forget * head(contexts, -1))) / (1 + sum(factor_forget)))
+    return((context_latest + sum(factor_forget * head(contexts, -1))) /
+           (1 + sum(factor_forget)))
 }
 
 
@@ -93,11 +98,19 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
                 trust_current *
                     prod(
                         2 - params$eta[[4]]**
-                            delta(context_target, context_weighted, context_target > context_weighted)
+                            delta(
+                                context_target,
+                                context_weighted,
+                                context_target > context_weighted
+                            )
                     ) *
                     prod(
                         params$eta[[5]]**
-                            delta(context_target, context_weighted, context_target < context_weighted)
+                            delta(
+                                context_target,
+                                context_weighted,
+                                context_target < context_weighted
+                            )
                     )
             )
         )
@@ -108,11 +121,19 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
             trust_current *
                 prod(
                     params$eta[[2]]**
-                        delta(context_target, context_weighted, context_target > context_weighted)
+                        delta(
+                            context_target,
+                            context_weighted,
+                            context_target > context_weighted
+                        )
                 ) *
                 prod(
                     2 - params$eta[[3]]**
-                        delta(context_target, context_weighted, context_target < context_weighted)
+                        delta(
+                            context_target,
+                            context_weighted,
+                            context_target < context_weighted
+                        )
                 )
         )
     )
@@ -140,7 +161,8 @@ weighted_trust <- function(trust_estimate, trust, distrust, unknown) {
             prob_trust > max(prob_unknown, prob_distrust),
             params$alpha,
             `if`(
-                prob_unknown >= max(prob_trust, prob_distrust) && prob_unknown != prob_distrust,
+                prob_unknown >= max(prob_trust, prob_distrust) &&
+                    prob_unknown != prob_distrust,
                 params$beta,
                 params$gamma
             )
@@ -156,7 +178,8 @@ direct_trust <- function(trusts, context_target, context_weighted) {
 
 
 # Calculate the indirect trust
-indirect_trust <- function(trusts, reputations, contexts, context_weighted, context_cached) {
+indirect_trust <- function(trusts, reputations, contexts,
+                           context_weighted, context_cached) {
     omega_weighted <- omega(context_weighted, contexts)
     omega_cached <- omega(context_cached, contexts)
     return(
@@ -169,9 +192,13 @@ indirect_trust <- function(trusts, reputations, contexts, context_weighted, cont
 # A function used within the indirect and direct trust calculations
 omega <- function(context_weighted, context_target) {
     return(
-        params$eta[[1]]**(
+        params$eta[[1]]** (
             apply(
-                matrix(context_target, ncol = length(context_weighted), byrow = T),
+                matrix(
+                    context_target,
+                    ncol = length(context_weighted),
+                    byrow = T
+                ),
                 1,
                 function(c) {
                     return(context_distance(context_weighted, c))
@@ -186,7 +213,8 @@ omega <- function(context_weighted, context_target) {
 trend_of_trust <- function(trust0, trust1, context0, context1) {
     return(
         trust1 -
-            params$eta[[1]]**(context_distance(context1, context0) / params$delta)
+            params$eta[[1]]** (context_distance(context1, context0) /
+                               params$delta)
                 * trust0
     )
 }
@@ -212,7 +240,7 @@ acceptable_rec <- function(c_cached, c_recced, t_recced) {
     return(
         abs(
             t_recced *
-                params$eta[[1]]**(
+                params$eta[[1]]** (
                     context_distance(c_cached, c_recced) /
                         params$delta
                 )

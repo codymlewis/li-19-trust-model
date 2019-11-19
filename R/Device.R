@@ -155,8 +155,10 @@ Device <- R6::R6Class(
 
         recieve_observation = function(obs) {
             "Receive a recommendation from the sender"
-            self$performance_update(obs)
-            self$combine_rep(obs)
+            if (obs$id_sender != self$id) {
+                self$performance_update(obs)
+                self$combine_rep(obs)
+            }
             if ((length(self$contexts[[obs$id_sender]]) / length(params$context_weights)) >=
                 params$compression_factor) {
                 w_context <- find_weighted_context(
@@ -328,7 +330,18 @@ Device <- R6::R6Class(
                     self$estimated_trusts[[i]] <- used_trust
                 }
             }
-            self$recieve_observation(rs_dir_trust$obs)
+            self$recieve_observation(
+                Observation$new(
+                    normalized_c_target,
+                    weighted_trust(
+                        compute_trust(self$sp_trust, self$sp_distrust, self$sp_unknown),
+                        self$sp_trust,
+                        self$sp_distrust,
+                        self$sp_unknown
+                    ),
+                    self$id
+                )
+            )
         },
 
         send_rec = function(devices) {
@@ -381,6 +394,7 @@ Device <- R6::R6Class(
                         trust_evaled,
                         self$id
                     ),
+                    context_weighted = context_weighted,
                     trust_est = estimate_trust(
                         normalized_c_target,
                         context_weighted,
@@ -448,9 +462,9 @@ Device <- R6::R6Class(
                 lapply(
                     self$contacts,
                     function(i) {
-                        omega(self$cached_contexts[[i]], self$contexts[[i]][
-                            !is.na(self$contexts[[i]])
-                        ]) *
+                        # omega(self$cached_contexts[[i]], self$contexts[[i]][
+                        #     !is.na(self$contexts[[i]])
+                        # ]) *
                             self$reputations[[i]] *
                             self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])] *
                             considerations[[i]]
@@ -473,7 +487,7 @@ Device <- R6::R6Class(
                 context_trust_now <- self$get_contexts_trust_ex_id(
                     params$time_now, obs$id_sender
                 )
-                prev_time <- tail(which(!is.na(self$stored_trusts[[obs$id_sender]]))[[1]])
+                prev_time <- tail(which(!is.na(self$stored_trusts[[obs$id_sender]])), 1)
                 context_trust_prev <- self$get_contexts_trust_ex_id(
                     prev_time, obs$id_sender
                 )
@@ -492,7 +506,7 @@ Device <- R6::R6Class(
                     )
                     trends_diff <- abs(direct_trend - indirect_trend)
                     trends_max <- max(abs(direct_trend), abs(indirect_trend))
-                    if (trends_diff < trends_max) {
+                    if (trends_diff < trends_max + params$trust_rep_adj_range) {
                         self$trust[[obs$id_sender]] <- self$trust[[obs$id_sender]] + 1
                     } else if (trends_diff <= max(trends_max, params$trend_threshold)) {
                         self$unknown[[obs$id_sender]] <- self$unknown[[obs$id_sender]] + 1
@@ -508,7 +522,8 @@ Device <- R6::R6Class(
             if (!is.na(self$stored_trusts[[self$id]][time])) {
                 return(
                     list(
-                        context = tail(self$contexts[[self$id]], length(params$context_weights)),
+                        context = tail(self$contexts[[self$id]],
+                                       length(params$context_weights)),
                         trust = self$stored_trusts[[self$id]][[time]]
                     )
                 )
@@ -517,7 +532,9 @@ Device <- R6::R6Class(
                     lapply(
                         setdiff(self$contacts, c(self$id, id_sender)),
                         function(i) {
-                            cur_context <- self$contexts[[i]][get_context_index(time)]
+                            cur_context <- self$contexts[[i]][
+                                get_context_index(time)
+                            ]
                             return(
                                 `if`(
                                     any(is.na(cur_context)),
@@ -537,7 +554,9 @@ Device <- R6::R6Class(
                         lapply(
                             setdiff(self$contacts, c(self$id, id_sender)),
                             function(i) {
-                                cur_context <- self$contexts[[i]][get_context_index(time)]
+                                cur_context <- self$contexts[[i]][
+                                    get_context_index(time)
+                                ]
                                 if (is.na(self$stored_trusts[[i]][time])) {
                                     return(NULL)
                                 }
@@ -578,7 +597,8 @@ Device <- R6::R6Class(
                     self$unknown[[obs$id_sender]]
                 )
             )
-            if (abs(self$reputations[[obs$id_sender]]) <= params$trust_rep_adj_range) {
+            if (abs(self$reputations[[obs$id_sender]]) <=
+                params$trust_rep_adj_range) {
                 self$reputations[[obs$id_sender]] <- params$init_reputation
             }
             self$cached_contexts[[obs$id_sender]] <- c_new
@@ -591,8 +611,9 @@ Device <- R6::R6Class(
                 if (connection_data[[1]] < Inf) {
                     # routed communication
                     connection_data[[2]]$recieve_observation(observation)
-                } else if (euc_dist(devices[[contact]]$location, self$location) <=
-                    params$dev_signal_radius) {
+                } else if (euc_dist(devices[[contact]]$location,
+                                    self$location) <=
+                params$dev_signal_radius) {
                     # direct communication
                     devices[[contact]]$recieve_observation(observation)
                 }
