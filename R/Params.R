@@ -46,7 +46,7 @@ Params <- R6::R6Class(
         compression_factor = Inf,
         # compression_factor = 5,
         # contacts_per_node = sqrt(min(params$max_number_contacts, params$number_nodes - 1)),
-        number_adversaries = 5,
+        number_adversaries = 0,
         contacts_per_node = 15,
         rand_context = FALSE,
 

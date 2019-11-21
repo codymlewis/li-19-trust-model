@@ -76,7 +76,13 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     tcltk::tkgrid(timelabel, row = "1", column = "0")
     filename <- tempfile(fileext = ".png")
     png(filename = filename, width = params$img_width, height = params$img_height)
-    print(plot_estimated_trust(1, map_and_devices$devices))
+    print(
+        plot_estimated_trust(
+            length(length(map_and_devices$devices)),
+            map_and_devices$devices,
+            title = "Estimated Trusts of the Observer"
+        )
+    )
     dev.off()
     tcltk::tcl("image", "create", "photo", "trustest", file = filename)
     trustlabel <- tcltk2::tk2label(tt, image = "trustest", compound = "image")
@@ -235,17 +241,28 @@ create_map_and_devices <- function(map_filename) {
         function(i) {
             cat_progress(
                 i,
-                params$number_good_nodes,
-                prefix = sprintf("Device %d of %d", i, params$number_good_nodes)
+                params$number_nodes,
+                prefix = sprintf("Device %d of %d", i, params$number_nodes)
             )
             return(Device$new(i, sp, map))
         }
     )
     for (i in seq_len(params$number_adversaries)) {
+        cat_progress(
+            params$number_good_nodes + i,
+            params$number_nodes,
+            prefix = sprintf("Device %d of %d", i, params$number_nodes)
+        )
         dev_id <- params$number_good_nodes + i
         devices[[dev_id]] <- ContextSetter$new(dev_id, sp, map)
     }
-    devices[[length(devices) + 1]] <- Device$new(length(devices) + 1, sp, map)
+    i <- length(devices) + 1
+    cat_progress(
+        i,
+        params$number_nodes,
+        prefix = sprintf("Device %d of %d", i, params$number_nodes)
+    )
+    devices[[length(devices) + 1]] <- Observer$new(i, sp, map) # num_part different length to omega_weighted
     lapply(
         1:params$number_good_nodes,
         function(i) {
@@ -313,8 +330,8 @@ plot_estimated_trust <- function(
             x = "Time",
             y = "Estimated Trust",
             colour = NULL
-        ) +
-    ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+        )# +
+        # ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
     return(
         `if`(
             length(devices[[dev_id]]$estimated_trusts) > 1,

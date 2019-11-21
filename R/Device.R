@@ -305,13 +305,7 @@ Device <- R6::R6Class(
         transaction = function(devices) {
             "Perform a transaction with a service provider"
             normalized_c_target <- normalize(self$get_target_context())
-            rs_dir_trust <- self$find_direct_trust(normalized_c_target)
-            used_trust <- `if`(
-                abs(rs_dir_trust$trust_comb) <=
-                    (params$trust_rep_threshold + params$trust_rep_adj_range),
-                self$find_indirect_trust(normalized_c_target),
-                rs_dir_trust$trust_est
-            )
+            used_trust <- self$use_trust(normalized_c_target)
             if (used_trust > params$trust_rep_threshold - params$trust_rep_adj_range) {
                 t_rs <- self$service_provider$provide_service()
                 if (t_rs == TRUSTED) {
@@ -340,6 +334,18 @@ Device <- R6::R6Class(
                         self$sp_unknown
                     ),
                     self$id
+                )
+            )
+        },
+
+        use_trust = function(normalized_c_target) {
+            rs_dir_trust <- self$find_direct_trust(normalized_c_target)
+            return(
+                `if`(
+                    abs(rs_dir_trust$trust_comb) <=
+                        (params$trust_rep_threshold + params$trust_rep_adj_range),
+                    self$find_indirect_trust(normalized_c_target),
+                    rs_dir_trust$trust_est
                 )
             )
         },
@@ -475,12 +481,18 @@ Device <- R6::R6Class(
                 lapply(
                     self$contacts,
                     function(i) {
-                        # omega(self$cached_contexts[[i]], self$contexts[[i]][
-                        #     !is.na(self$contexts[[i]])
-                        # ]) *
-                            self$reputations[[i]] *
-                            self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])] *
-                            considerations[[i]]
+                        return(
+                            `if`(
+                                self$reputations[[i]] < 0,
+                                0, # Do not consider recs from trustees with -ve rep
+                                omega(self$cached_contexts[[i]], self$contexts[[i]][
+                                        !is.na(self$contexts[[i]])
+                                    ]) *
+                                        self$reputations[[i]] *
+                                        self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])] *
+                                        considerations[[i]]
+                                )
+                        )
                     }
                 )
             )
@@ -535,8 +547,10 @@ Device <- R6::R6Class(
             if (!is.na(self$stored_trusts[[self$id]][time])) {
                 return(
                     list(
-                        context = tail(self$contexts[[self$id]],
-                                       length(params$context_weights)),
+                        context = tail(
+                            self$contexts[[self$id]],
+                            length(params$context_weights)
+                        ),
                         trust = self$stored_trusts[[self$id]][[time]]
                     )
                 )
@@ -624,9 +638,11 @@ Device <- R6::R6Class(
                 if (connection_data[[1]] < Inf) {
                     # routed communication
                     connection_data[[2]]$recieve_observation(observation)
-                } else if (euc_dist(devices[[contact]]$location,
-                                    self$location) <=
-                params$dev_signal_radius) {
+                } else if (euc_dist(
+                    devices[[contact]]$location,
+                    self$location
+                ) <=
+                    params$dev_signal_radius) {
                     # direct communication
                     devices[[contact]]$recieve_observation(observation)
                 }
