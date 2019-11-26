@@ -55,7 +55,7 @@ Tile <- R6::R6Class(
             "Add a signal from a base station here"
             self$signals[[length(self$signals) + 1]] <- base_station
             if (is_edge) {
-                signal_edge <<- TRUE
+                self$signal_edge <- TRUE
             }
         }
     )

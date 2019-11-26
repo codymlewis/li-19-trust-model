@@ -92,11 +92,14 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
         text = "Save and Exit",
         command = function() {
             plot_estimated_trust(
-                1,
+                length(map_and_devices$devices),
                 map_and_devices$devices,
                 title = "Estimated Trusts of the Observer"
             )
-            filename <- "images/plots/device-1-estimated-trust.png"
+            filename <- sprintf(
+                "images/plots/device-%d-estimated-trust.png",
+                length(map_and_devices$devices)
+            )
             ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
             cat(sprintf("Saved estimated trust plot to %s\n", filename))
             cat("Bye.\n")
@@ -262,7 +265,7 @@ create_map_and_devices <- function(map_filename) {
         params$number_nodes,
         prefix = sprintf("Device %d of %d", i, params$number_nodes)
     )
-    devices[[length(devices) + 1]] <- Observer$new(i, sp, map) # num_part different length to omega_weighted
+    devices[[length(devices) + 1]] <- Observer$new(i, sp, map)
     lapply(
         1:params$number_good_nodes,
         function(i) {

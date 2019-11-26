@@ -361,7 +361,8 @@ Device <- R6::R6Class(
                         self$sp_unknown
                     ),
                     self$id
-                )
+                ),
+                devices
             )
         },
 
@@ -427,7 +428,26 @@ Device <- R6::R6Class(
 
         find_indirect_trust = function(normalized_c_target) {
             "Find the indirect trust of the service provider"
-            considerations <- lapply(
+            considerations <-self$ get_considerations()
+            all_contexts <- self$get_all_contexts(considerations)
+            if (is.null(all_contexts)) {
+                return(params$trust_new_contact)
+            }
+            context_weighted <- find_weighted_context(all_contexts[all_contexts >= 0])
+            omega_weighted <- self$find_omega_w(context_weighted, considerations)
+            num_part <- self$find_num_part(considerations)
+            ind_trust <- sum(omega_weighted * num_part) / sum(omega_weighted)
+            return(
+                estimate_trust(
+                    normalized_c_target,
+                    context_weighted,
+                    ind_trust
+                )
+            )
+        },
+
+        get_considerations = function() {
+            lapply(
                 1:params$number_nodes,
                 function(i) {
                     `if`(
@@ -437,7 +457,10 @@ Device <- R6::R6Class(
                     )
                 }
             )
-            all_contexts <- unlist(
+        },
+
+        get_all_contexts = function(considerations) {
+            unlist(
                 lapply(
                     self$contacts,
                     function(i) {
@@ -456,11 +479,10 @@ Device <- R6::R6Class(
                     }
                 )
             )
-            if (is.null(all_contexts)) {
-                return(params$trust_new_contact)
-            }
-            context_weighted <- find_weighted_context(all_contexts[all_contexts >= 0])
-            omega_weighted <- unlist(
+        },
+
+        find_omega_w = function(context_weighted, considerations) {
+            unlist(
                 lapply(
                     self$contacts,
                     function(i) {
@@ -477,7 +499,10 @@ Device <- R6::R6Class(
                     }
                 )
             )
-            num_part <- unlist(
+        },
+
+        find_num_part = function(considerations) {
+            unlist(
                 lapply(
                     self$contacts,
                     function(i) {
@@ -491,17 +516,9 @@ Device <- R6::R6Class(
                                         self$reputations[[i]] *
                                         self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])] *
                                         considerations[[i]]
-                                )
+                            )
                         )
                     }
-                )
-            )
-            ind_trust <- sum(omega_weighted * num_part) / sum(omega_weighted)
-            return(
-                estimate_trust(
-                    normalized_c_target,
-                    context_weighted,
-                    ind_trust
                 )
             )
         },
@@ -547,10 +564,9 @@ Device <- R6::R6Class(
             if (!is.na(self$stored_trusts[[self$id]][time])) {
                 return(
                     list(
-                        context = tail(
-                            self$contexts[[self$id]],
-                            length(params$context_weights)
-                        ),
+                        context = self$contexts[[self$id]][
+                            get_context_index(time)
+                        ],
                         trust = self$stored_trusts[[self$id]][[time]]
                     )
                 )
