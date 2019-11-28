@@ -1,9 +1,3 @@
-# TrustModel.r
-# An implentation of the trust model proposed in
-#
-# Author: Cody Lewis
-# Date: 2019-09-06
-
 # Compute the probability of a occuring among a, b, and c
 compute_probability <- function(a, b, c) {
     return(sum(a, 1) / sum(a, b, c, 3))

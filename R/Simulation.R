@@ -1,13 +1,17 @@
+#' @include ContextSetter.R
+#' @include GoodMouther.R
+#' @include BadMouther.R
+#' @include ServiceProvider.R
+#' @include Field.R
+#' @include Device.R
+#' @include Observer.R
+NULL
+
 #' Run the simulation in a console interface
 #'
 #' Simulate the trust model and the mobile network and iterate for an amount
 #' of time
 #' @keywords trust model simulate simulation run
-#' @include Params.R
-#' @include ServiceProvider.R
-#' @include Field.R
-#' @include Device.R
-#' @include Observer.R
 #' @export run_simulation
 
 run_simulation <- function(total_time,
@@ -50,9 +54,6 @@ run_simulation <- function(total_time,
 #'
 #' Simulate the trust model and the mobile network and iterate
 #' @keywords trust model simulate simulation run
-#' @include Params.R
-#' @include ServiceProvider.R
-#' @include Field.R
 #' @export run_gui
 
 run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")) {
@@ -63,6 +64,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     map_filename <- sprintf("images/maps/map-%d.png", params$time_now)
     cat("Performing transactions...\n")
     tt <- tcltk::tktoplevel()
+    tcltk::tktitle(tt) <- "Li 2019 Trust Model"
     tcltk::tcl(
         "image",
         "create",
@@ -257,7 +259,7 @@ create_map_and_devices <- function(map_filename) {
             prefix = sprintf("Device %d of %d", i, params$number_nodes)
         )
         dev_id <- params$number_good_nodes + i
-        devices[[dev_id]] <- ContextSetter$new(dev_id, sp, map)
+        devices[[dev_id]] <- params$adversary_type$new(dev_id, sp, map)
     }
     i <- length(devices) + 1
     cat_progress(

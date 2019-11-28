@@ -1,5 +1,3 @@
-#' @include Device.R
-
 Observer <- R6::R6Class(
     "Observer",
     inherit = Device,

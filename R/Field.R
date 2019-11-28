@@ -1,4 +1,3 @@
-#' @include Params.R
 #' @include Functions.R
 #' @include Tile.R
 

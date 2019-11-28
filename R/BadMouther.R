@@ -1,5 +1,3 @@
-#' @include Device.R
-
 BadMouther <- R6::R6Class(
     "BadMouther",
     inherit = Device,

@@ -1,7 +1,6 @@
 Params <- R6::R6Class(
     "Params",
     list(
-        # number_nodes = 200,
         number_nodes = 0,
         number_good_nodes = 20,
         number_service_providers = 1,
@@ -38,10 +37,10 @@ Params <- R6::R6Class(
         img_width = NULL,
         img_height = NULL,
         compression_factor = Inf,
-        # contacts_per_node = sqrt(min(params$max_number_contacts, params$number_nodes - 1)),
         number_adversaries = 0,
+        adversary_type = BadMouther,
         contacts_per_node = 15,
-        rand_context = FALSE,
+        rand_context = F,
 
         initialize = function() {
             self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1

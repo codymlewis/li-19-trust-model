@@ -1,13 +1,13 @@
-ContextSetter <- R6::R6Class(
-    "ContextSetter",
+GoodMouther <- R6::R6Class(
+    "GoodMouther",
     inherit = Device,
 
     public = list(
         send_rec = function(devices) {
             self$emit_observation(
                 Observation$new(
-                    c(params$time_now, 0.5, 0.5, 0.5),
-                    -1,
+                    self$contexts[[self$id]][get_context_index(params$time_now)],
+                    1,
                     self$id
                 )
             )

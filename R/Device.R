@@ -1,11 +1,3 @@
-#' @include Params.R
-#' @include Functions.R
-#' @include TrustModel.R
-#' @include ServiceProvider.R
-#' @include Observation.R
-#' @include Normalizers.R
-#' @include Field.R
-
 Device <- R6::R6Class(
     "Device",
     list(
@@ -409,18 +401,11 @@ Device <- R6::R6Class(
             )
             return(
                 list(
-                    obs = Observation$new(
-                        normalized_c_target,
-                        trust_evaled,
-                        self$id
-                    ),
-                    context_weighted = context_weighted,
                     trust_est = estimate_trust(
                         normalized_c_target,
                         context_weighted,
                         dir_trust
                     ),
-                    trust_evaled = trust_evaled,
                     trust_comb = dir_trust
                 )
             )
@@ -428,7 +413,7 @@ Device <- R6::R6Class(
 
         find_indirect_trust = function(normalized_c_target) {
             "Find the indirect trust of the service provider"
-            considerations <-self$ get_considerations()
+            considerations <-self$get_considerations()
             all_contexts <- self$get_all_contexts(considerations)
             if (is.null(all_contexts)) {
                 return(params$trust_new_contact)
@@ -436,6 +421,16 @@ Device <- R6::R6Class(
             context_weighted <- find_weighted_context(all_contexts[all_contexts >= 0])
             omega_weighted <- self$find_omega_w(context_weighted, considerations)
             num_part <- self$find_num_part(considerations)
+            # if (self$id == 21) {
+            if (F) {
+                print(sprintf("sum omega_w: %f", sum(omega_weighted)))
+                # print("omega_w:")
+                # print(omega_weighted)
+                print(sprintf("sum num_part: %f", sum(num_part)))
+                # print("num_part:")
+                # print(num_part)
+                print(sprintf("sum omega_w * num_part: %f", sum(omega_weighted * num_part)))
+            }
             ind_trust <- sum(omega_weighted * num_part) / sum(omega_weighted)
             return(
                 estimate_trust(
@@ -446,12 +441,13 @@ Device <- R6::R6Class(
             )
         },
 
-        get_considerations = function() {
+        get_considerations = function(excludes=c()) {
+            "Find which recommendations should be considered"
             lapply(
                 1:params$number_nodes,
                 function(i) {
                     `if`(
-                        i %in% self$contacts,
+                        i %in% self$contacts & !i %in% excludes,
                         self$should_consider_rec(i, which(!is.na(self$stored_trusts[[i]]))),
                         FALSE
                     )
@@ -460,6 +456,7 @@ Device <- R6::R6Class(
         },
 
         get_all_contexts = function(considerations) {
+            "Get all of the context values that should be considered"
             unlist(
                 lapply(
                     self$contacts,
@@ -482,6 +479,7 @@ Device <- R6::R6Class(
         },
 
         find_omega_w = function(context_weighted, considerations) {
+            "Find a vector of omega for the given weighted contexts"
             unlist(
                 lapply(
                     self$contacts,
@@ -502,6 +500,7 @@ Device <- R6::R6Class(
         },
 
         find_num_part = function(considerations) {
+            "Find the numerator exclusive part of the indirect trust combination"
             unlist(
                 lapply(
                     self$contacts,
@@ -592,29 +591,10 @@ Device <- R6::R6Class(
                     return(list())
                 }
                 c_weighted <- find_weighted_context(all_contexts)
-                t_comb <- sum(
-                    unlist(
-                        lapply(
-                            setdiff(self$contacts, c(self$id, id_sender)),
-                            function(i) {
-                                cur_context <- self$contexts[[i]][
-                                    get_context_index(time)
-                                ]
-                                if (is.na(self$stored_trusts[[i]][time])) {
-                                    return(NULL)
-                                }
-                                ind_trust <- indirect_trust(
-                                    self$stored_trusts[[i]][[time]],
-                                    self$reputations[[i]],
-                                    cur_context,
-                                    c_weighted,
-                                    self$cached_contexts[[i]]
-                                )
-                                return(`if`(is.na(ind_trust), NULL, ind_trust))
-                            }
-                        )
-                    )
-                )
+                considerations <- self$get_considerations(excludes=c(self$id, id_sender))
+                omega_weighted <- self$find_omega_w(c_weighted, considerations)
+                num_part <- self$find_num_part(considerations)
+                t_comb <- sum(omega_weighted * num_part) / sum(omega_weighted)
                 return(list(context = c_weighted, trust = t_comb))
             }
         },

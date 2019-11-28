@@ -1,4 +1,5 @@
 #' @include Params.R
+NULL
 
 utils::globalVariables(
     c("LAND", "WATER", "AIR", "TRUSTED", "UNKNOWN", "DISTRUST", "params")
