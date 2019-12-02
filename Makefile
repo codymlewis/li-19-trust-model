@@ -19,7 +19,7 @@ deps:
 	if (!require(devtools)) { \
 	install.packages('devtools'); \
 	};\
-	install.packages(c('png', 'ggplot2', 'tcltk2', 'styler', 'R6'))"
+	install.packages(c('png', 'ggplot2', 'tcltk2', 'styler', 'R6'), dependencies=TRUE)"
 
 check:
 	R -e "devtools::check()"

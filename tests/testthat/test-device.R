@@ -14,7 +14,7 @@ d <- Device$new(1, sp, f, c(1, 1))
 
 test_that("device creation works", {
     expect_equal(d$id, 1)
-    expect_equal(d$time_last_moved, params$time_now)
+    expect_equal(d$time_last_moved, params$time_now - 1)
     expect_equal(d$trust, rep(0, params$number_nodes))
     expect_equal(d$distrust, rep(0, params$number_nodes))
     expect_equal(d$unknown, rep(0, params$number_nodes))
@@ -69,7 +69,6 @@ test_that("moving works", {
     init_next_tile_node_count <- length(f$get_tile(c(2, 2))[[1]]$objects)
     d$current_goal <- init_goal
     d$velocity <- init_velocity
-    params$increment_time()
     d$move()
     expect_equal(d$location, c(2, 2))
     expect_equal(d$time_last_moved, params$time_now)

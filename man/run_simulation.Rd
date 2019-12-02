@@ -6,7 +6,8 @@
 \usage{
 run_simulation(
   total_time,
-  map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")
+  map_filename = system.file("extdata", "map.csv", package = "li19trustmodel"),
+  config = system.file("extdata", "params.json", package = "li19trustmodel")
 )
 }
 \description{

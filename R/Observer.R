@@ -4,6 +4,7 @@ Observer <- R6::R6Class(
 
     public = list(
         use_trust = function(normalized_c_target) {
+            rs_dir_trust <- self$find_direct_trust(normalized_c_target)
             return(self$find_indirect_trust(normalized_c_target))
         }
     )

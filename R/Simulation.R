@@ -17,8 +17,12 @@ NULL
 run_simulation <- function(total_time,
                            map_filename = system.file(
                                "extdata", "map.csv",
+                               package = "li19trustmodel"),
+                           config = system.file(
+                               "extdata", "params.json",
                                package = "li19trustmodel"
                            )) {
+    params$configure(rjson::fromJSON(file=config))
     map_and_devices <- create_map_and_devices(map_filename)
     dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
     img <- write_map(map_and_devices$map)
@@ -39,7 +43,7 @@ run_simulation <- function(total_time,
     for (i in 1:params$number_nodes) {
         plot_estimated_trust(i, map_and_devices$devices)
         filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
-        ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
+        ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
         cat_progress(
             i,
             params$number_nodes,
@@ -56,7 +60,12 @@ run_simulation <- function(total_time,
 #' @keywords trust model simulate simulation run
 #' @export run_gui
 
-run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")) {
+run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "li19trustmodel"),
+                       config = system.file(
+                           "extdata", "params.json",
+                           package = "li19trustmodel")
+    ) {
+    params$configure(rjson::fromJSON(file=config))
     map_and_devices <- create_map_and_devices(map_filename)
     dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
     dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
@@ -77,7 +86,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     timelabel <- tcltk2::tk2label(tt, text = sprintf("Current time: %d", params$time_now))
     tcltk::tkgrid(timelabel, row = "1", column = "0")
     filename <- tempfile(fileext = ".png")
-    png(filename = filename, width = params$img_width, height = params$img_height)
+    Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
     print(
         plot_estimated_trust(
             length(length(map_and_devices$devices)),
@@ -102,7 +111,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
                 "images/plots/device-%d-estimated-trust.png",
                 length(map_and_devices$devices)
             )
-            ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320)
+            ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
             cat(sprintf("Saved estimated trust plot to %s\n", filename))
             cat("Bye.\n")
             quit("no")
@@ -110,7 +119,6 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     )
     tcltk::tkgrid(closebut, row = "1", column = "1")
     repeat {
-        params$increment_time()
         set_trusts(map_and_devices$devices)
         movements <- transact_and_move(map_and_devices$devices)
         img <- update_map(
@@ -128,7 +136,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
             file = sprintf("images/maps/map-%d.png", params$time_now)
         )
         filename <- tempfile(fileext = ".png")
-        png(filename = filename, width = params$img_width, height = params$img_height)
+        Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
         print(
             plot_estimated_trust(
                 length(map_and_devices$devices),
@@ -139,6 +147,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
         dev.off()
         tcltk::tcl("image", "create", "photo", "trustest", file = filename)
         tcltk::tkconfigure(timelabel, text = sprintf("Current time: %d", params$time_now))
+        params$increment_time()
     }
     tcltk::tkdestroy(tt)
 }
@@ -283,7 +292,11 @@ create_map_and_devices <- function(map_filename) {
     devices[[length(devices)]]$add_contact(
         c(
             sample(1:params$number_good_nodes, params$contacts_per_node),
-            (params$number_good_nodes + 1):(params$number_good_nodes + params$number_adversaries)
+            setdiff(
+                (params$number_good_nodes + 1):
+                (params$number_good_nodes + params$number_adversaries),
+                length(devices)
+            )
         ),
         devices
     )
@@ -316,6 +329,10 @@ transact_and_move <- function(devices) {
         }
         device$move()
         new_locs[[device$id]] <- device$location
+    }
+    for (device in devices) {
+        device$performance_updates()
+        device$combine_reps()
     }
     return(list(old_locs, new_locs))
 }

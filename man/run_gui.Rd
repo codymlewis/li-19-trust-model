@@ -5,7 +5,8 @@
 \title{Run the simulation in a graphical interface}
 \usage{
 run_gui(
-  map_filename = system.file("extdata", "map.csv", package = "li19trustmodel")
+  map_filename = system.file("extdata", "map.csv", package = "li19trustmodel"),
+  config = system.file("extdata", "params.json", package = "li19trustmodel")
 )
 }
 \description{
