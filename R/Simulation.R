@@ -276,29 +276,42 @@ create_map_and_devices <- function(map_filename) {
         params$number_nodes,
         prefix = sprintf("Device %d of %d", i, params$number_nodes)
     )
-    devices[[length(devices) + 1]] <- Observer$new(i, sp, map)
     lapply(
         1:params$number_good_nodes,
         function(i) {
             devices[[i]]$add_contact(
                 sample(
-                    setdiff(1:params$number_nodes, i),
+                    setdiff(1:(params$number_nodes - 1), i),
                     params$contacts_per_node
                 ),
                 devices
             )
         }
     )
+    devices[[length(devices) + 1]] <- Observer$new(i, sp, map)
+    adv_ids <- `if`(
+            params$number_adversaries == 0,
+            NULL,
+            (params$number_good_nodes + 1):
+            (params$number_good_nodes + params$number_adversaries)
+    )
+    num_norm_con <- params$number_observer_contacts - params$number_adversaries
     devices[[length(devices)]]$add_contact(
         c(
-            sample(1:params$number_good_nodes, params$contacts_per_node),
-            setdiff(
-                (params$number_good_nodes + 1):
-                (params$number_good_nodes + params$number_adversaries),
-                length(devices)
-            )
+            sample(
+                1:params$number_good_nodes,
+                `if`(num_norm_con < 0, 0, num_norm_con)
+            ),
+            adv_ids
         ),
         devices
+    )
+    cat(
+        sprintf(
+            "The observer has %d contacts where %d are adversaries\n",
+            length(devices[[length(devices)]]$contacts),
+            length(adv_ids)
+        )
     )
     return(list(map = map, devices = devices))
 }
@@ -352,8 +365,8 @@ plot_estimated_trust <- function(
             x = "Time",
             y = "Estimated Trust",
             colour = NULL
-        )# +
-        # ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+        ) +
+        ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
     return(
         `if`(
             length(devices[[dev_id]]$estimated_trusts) > 1,

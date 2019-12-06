@@ -39,8 +39,9 @@ Params <- R6::R6Class(
         compression_factor = Inf,
         number_adversaries = 0,
         adversary_type = BadMouther,
-        contacts_per_node = 15,
+        contacts_per_node = 10,
         rand_context = F,
+        number_observer_contacts = 10,
 
         initialize = function() {
             self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1
@@ -53,50 +54,51 @@ Params <- R6::R6Class(
         },
 
         configure = function(data) {
-            self$number_good_nodes = data$number_good_nodes
-            self$number_service_providers = data$number_service_providers
-            self$signal_radius = data$signal_radius
-            self$dev_signal_radius = data$dev_signal_radius
-            self$max_number_contacts = data$max_number_contacts
-            self$init_reputation = data$init_reputation
-            self$rep_self = data$rep_self
-            self$trust_new_contact = data$trust_new_contact
-            self$trust_rep_threshold = data$trust_rep_threshold
-            self$trend_threshold = data$trend_threshold
-            self$trust_rep_adj_range = data$trust_rep_adj_range
-            self$sp_ground_trust = data$sp_ground_trust
-            self$max_capability = data$max_capability
-            self$map_width = data$map_width
-            self$map_height = data$map_height
-            self$max_velocity = data$max_velocity
-            self$time_now = data$time_now
-            self$context_weights = data$context_weights
-            self$eta = data$eta
-            self$alpha = data$alpha
-            self$beta = data$beta
-            self$gamma = data$gamma
-            self$rho = data$rho
-            self$delta = data$delta
-            self$delta_a = data$delta_a
-            self$p_r = data$p_r
-            self$theta_i = data$theta_i
-            self$impact_factor = data$impact_factor
-            self$eta_i = data$eta_i
-            self$gap_factor = data$gap_factor
-            self$min_trans = data$min_trans
-            self$max_trans = data$max_trans
-            self$compression_factor = `if`(
+            self$number_good_nodes <- data$number_good_nodes
+            self$number_service_providers <- data$number_service_providers
+            self$signal_radius <- data$signal_radius
+            self$dev_signal_radius <- data$dev_signal_radius
+            self$max_number_contacts <- data$max_number_contacts
+            self$init_reputation <- data$init_reputation
+            self$rep_self <- data$rep_self
+            self$trust_new_contact <- data$trust_new_contact
+            self$trust_rep_threshold <- data$trust_rep_threshold
+            self$trend_threshold <- data$trend_threshold
+            self$trust_rep_adj_range <- data$trust_rep_adj_range
+            self$sp_ground_trust <- data$sp_ground_trust
+            self$max_capability <- data$max_capability
+            self$map_width <- data$map_width
+            self$map_height <- data$map_height
+            self$max_velocity <- data$max_velocity
+            self$time_now <- data$time_now
+            self$context_weights <- data$context_weights
+            self$eta <- data$eta
+            self$alpha <- data$alpha
+            self$beta <- data$beta
+            self$gamma <- data$gamma
+            self$rho <- data$rho
+            self$delta <- data$delta
+            self$delta_a <- data$delta_a
+            self$p_r <- data$p_r
+            self$theta_i <- data$theta_i
+            self$impact_factor <- data$impact_factor
+            self$eta_i <- data$eta_i
+            self$gap_factor <- data$gap_factor
+            self$min_trans <- data$min_trans
+            self$max_trans <- data$max_trans
+            self$compression_factor <- `if`(
                 data$compression_factor <= 0,
                 Inf,
                 data$compression_factor
             )
-            self$number_adversaries = data$number_adversaries
-            self$adversary_type = get_adversary_type(data$adversary_type)
-            self$contacts_per_node = data$contacts_per_node
-            self$rand_context = data$rand_context
+            self$number_adversaries <- data$number_adversaries
+            self$adversary_type <- get_adversary_type(data$adversary_type)
+            self$contacts_per_node <- data$contacts_per_node
+            self$rand_context <- data$rand_context
             self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1
             self$img_width <- ceiling(5**(1 - self$map_width / 1000)) * self$map_width
             self$img_height <- ceiling(5**(1 - self$map_height / 1000)) * self$map_height
+            self$number_observer_contacts <- data$number_observer_contacts
         }
     )
 )

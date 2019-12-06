@@ -34,6 +34,7 @@
     "compression_factor": -1,
     "number_adversaries": 0,
     "adversary_type": "BadMouther",
-    "contacts_per_node": 15,
-    "rand_context": false
+    "contacts_per_node": 10,
+    "rand_context": false,
+    "number_observer_contacts": 10
 }
