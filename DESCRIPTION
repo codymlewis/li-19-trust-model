@@ -22,16 +22,14 @@ RoxygenNote: 7.0.1
 Suggests:
     testthat (>= 2.1.0)
 Collate:
-    'BadMouther.R'
+    'Adversaries.R'
     'BaseStation.R'
-    'ContextSetter.R'
     'Device.R'
     'Tile.R'
     'Functions.R'
     'Field.R'
     'Params.R'
     'Globals.R'
-    'GoodMouther.R'
     'Normalizers.R'
     'Observation.R'
     'Observer.R'

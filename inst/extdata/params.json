@@ -1,5 +1,5 @@
 {
-    "number_good_nodes": 20,
+    "number_nodes": 21,
     "number_service_providers": 1,
     "signal_radius": 100,
     "dev_signal_radius": 14,

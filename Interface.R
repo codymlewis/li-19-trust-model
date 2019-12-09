@@ -3,7 +3,7 @@
 library(li19trustmodel)
 
 main <- function() {
-    run_simulation(2, config="inst/extdata/params.json")
+    run_simulation(500, config="inst/extdata/params.json")
     quit("no")
 }
 

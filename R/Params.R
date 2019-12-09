@@ -1,8 +1,8 @@
 Params <- R6::R6Class(
     "Params",
     list(
-        number_nodes = 0,
-        number_good_nodes = 20,
+        number_nodes = 21,
+        number_good_nodes = 0,
         number_service_providers = 1,
         signal_radius = 100,
         dev_signal_radius = 14,
@@ -44,7 +44,7 @@ Params <- R6::R6Class(
         number_observer_contacts = 10,
 
         initialize = function() {
-            self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1
+            self$number_good_nodes <- self$number_nodes - (self$number_adversaries + 1)
             self$img_width <- ceiling(5**(1 - self$map_width / 1000)) * self$map_width
             self$img_height <- ceiling(5**(1 - self$map_height / 1000)) * self$map_height
         },
@@ -54,7 +54,7 @@ Params <- R6::R6Class(
         },
 
         configure = function(data) {
-            self$number_good_nodes <- data$number_good_nodes
+            self$number_nodes <- data$number_nodes
             self$number_service_providers <- data$number_service_providers
             self$signal_radius <- data$signal_radius
             self$dev_signal_radius <- data$dev_signal_radius
@@ -95,13 +95,15 @@ Params <- R6::R6Class(
             self$adversary_type <- get_adversary_type(data$adversary_type)
             self$contacts_per_node <- data$contacts_per_node
             self$rand_context <- data$rand_context
-            self$number_nodes <- self$number_good_nodes + self$number_adversaries + 1
+
+            self$number_good_nodes <- self$number_nodes - (self$number_adversaries + 1)
             self$img_width <- ceiling(5**(1 - self$map_width / 1000)) * self$map_width
             self$img_height <- ceiling(5**(1 - self$map_height / 1000)) * self$map_height
             self$number_observer_contacts <- data$number_observer_contacts
         }
     )
 )
+
 
 get_adversary_type <- function(ad_type) {
     if (grepl("BadMouther", ad_type)) {

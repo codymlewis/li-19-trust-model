@@ -23,8 +23,12 @@ Device <- R6::R6Class(
         stored_trusts = list(),
         cached_contexts = list(),
         observed_trusts = NULL,
+        acceptable_recs = list(),
+        old_trusts = list(),
+        old_contexts = list(),
 
-        initialize = function(id, sp, map, loc = round(runif(2, min = 1, max = map_size))) {
+        initialize = function(id, sp, map, node_type = "Normal",
+                              loc = round(runif(2, min = 1, max = map_size))) {
             self$service_provider <- sp
             if (!is.null(map)) {
                 map_size <- map$shape()
@@ -71,6 +75,10 @@ Device <- R6::R6Class(
                         c(params$time_now, 0, 0, 0)
                     )
                 }
+            )
+            self$acceptable_recs <- lapply(
+                1:params$number_nodes,
+                function(i) { c(TRUE) }
             )
             self$stored_trusts <- lapply(
                 1:params$number_nodes,
@@ -136,7 +144,6 @@ Device <- R6::R6Class(
         sp_trust_increment = function() {
             "Increment the trust count of the service provider"
             self$sp_trust <- self$sp_trust + 1
-            # self$sp_trust <- 100
         },
 
         sp_distrust_increment = function() {
@@ -151,7 +158,6 @@ Device <- R6::R6Class(
 
         trust_increment = function(id_sender) {
             self$trust[[id_sender]] <- self$trust[[id_sender]] + 1
-            # self$trust[[id_sender]] <- 100
         },
 
         unknown_increment = function(id_sender) {
@@ -160,6 +166,21 @@ Device <- R6::R6Class(
 
         distrust_increment = function(id_sender) {
             self$distrust[[id_sender]] <- self$distrust[[id_sender]] + 1
+        },
+
+        send_rec = function(devices) {
+            rs_dir_trust <- self$find_direct_trust(
+                self$contexts[[self$id]][get_context_index(params$time_now)]
+            )
+            self$stored_trusts[[self$id]][[params$time_now]] <- rs_dir_trust$trust_comb
+            self$emit_observation(
+                Observation$new(
+                    self$contexts[[self$id]][get_context_index(params$time_now)],
+                    rs_dir_trust$trust_comb,
+                    self$id
+                ),
+                devices
+            )
         },
 
         recieve_observation = function(obs) {
@@ -197,24 +218,26 @@ Device <- R6::R6Class(
                 ] <- obs$context
                 self$stored_trusts[[obs$id_sender]][[i]] <- obs$trust
             }
-        },
-
-        should_consider_rec = function(id_sender, transaction_num) {
-            "Check whether the recommendation should be considered"
-            recced_trust <- self$stored_trusts[[id_sender]][transaction_num]
-            return(
-                recced_trust > (params$delta_a - params$trust_rep_adj_range) |
-                    sapply(
-                        seq_len(length(transaction_num)),
-                        function(i) {
+            if (params$time_now > 1) {
+                if (self$acceptable_recs[[obs$id_sender]][[params$time_now - 1]]) {
+                    self$old_trusts[[obs$id_sender]] <- 
+                        self$stored_trusts[[obs$id_sender]][[params$time_now - 1]]
+                    self$old_contexts[[obs$id_sender]] <-
+                        self$contexts[[obs$id_sender]][get_context_index(params$time_now - 1)]
+                }
+                if (self$old_trusts[[obs$id_sender]] < (
+                    params$delta_a - params$trust_rep_adj_range)) {
+                    self$acceptable_recs[[obs$id_sender]][[params$time_now]] <-
+                        obs$trust > (params$delta_a - params$trust_rep_adj_range) ||
                             acceptable_rec(
-                                self$cached_contexts[[id_sender]],
-                                self$contexts[[id_sender]][get_context_index(transaction_num[[i]])],
-                                recced_trust[[i]]
+                                self$cached_contexts[[obs$id_sender]],
+                                self$old_contexts[[obs$id_sender]],
+                                self$old_trusts[[obs$id_sender]]
                             )
-                        }
-                    )
-            )
+                } else {
+                    self$acceptable_recs[[obs$id_sender]][[params$time_now]] <- TRUE
+                }
+            }
         },
 
         move = function() {
@@ -320,8 +343,6 @@ Device <- R6::R6Class(
                 } else {
                     self$sp_distrust_increment()
                 }
-            } else {
-                self$sp_distrust_increment()
             }
             prev_est_trust <- tail(self$estimated_trusts, 1)
             for (i in length(self$estimated_trusts):params$time_now) {
@@ -350,22 +371,6 @@ Device <- R6::R6Class(
                     self$find_indirect_trust(normalized_c_target),
                     rs_dir_trust$trust_est
                 )
-            )
-        },
-
-        send_rec = function(devices) {
-            "Send a recommendation to the contacts"
-            rs_dir_trust <- self$find_direct_trust(
-                self$contexts[[self$id]][get_context_index(params$time_now)]
-            )
-            self$stored_trusts[[self$id]][[params$time_now]] <- rs_dir_trust$trust_comb
-            self$emit_observation(
-                Observation$new(
-                    self$contexts[[self$id]][get_context_index(params$time_now)],
-                    rs_dir_trust$trust_comb,
-                    self$id
-                ),
-                devices
             )
         },
 
@@ -426,12 +431,20 @@ Device <- R6::R6Class(
         find_indirect_trust = function(normalized_c_target) {
             "Find the indirect trust of the service provider"
             considerations <- self$get_considerations()
+            # print("Considerations")
+            # print(considerations)
             all_contexts <- self$get_all_contexts(considerations)
-            if (is.null(all_contexts)) {
+            if (is.null(all_contexts) || length(all_contexts[all_contexts >= 0]) == 0) {
                 return(params$trust_new_contact)
             }
             context_weighted <- find_weighted_context(all_contexts[all_contexts >= 0])
-            ind_trust <- sum(self$find_ind_parts(context_weighted, considerations))
+            # ind_trust <- sum(self$find_ind_parts(context_weighted, considerations))
+            ind_trust <- self$find_ind(context_weighted, considerations)
+            if (self$id == 21) {
+                print("ind parts")
+                print(self$find_ind_parts(context_weighted, considerations))
+                print(sprintf("Sum of ind trust parts: %s", ind_trust))
+            }
             return(
                 estimate_trust(
                     normalized_c_target,
@@ -448,7 +461,7 @@ Device <- R6::R6Class(
                 function(i) {
                     `if`(
                         i %in% self$contacts & !i %in% excludes,
-                        self$should_consider_rec(i, which(!is.na(self$stored_trusts[[i]]))),
+                        self$acceptable_recs[[i]][which(!is.na(self$stored_trusts[[i]]))],
                         FALSE
                     )
                 }
@@ -461,24 +474,33 @@ Device <- R6::R6Class(
                 lapply(
                     self$contacts,
                     function(i) {
-                        self$contexts[[i]][!is.na(self$contexts[[i]])] *
-                            ifelse(
-                                as.vector(
-                                    matrix(
-                                        rep(considerations[[i]], length(params$context_weights)),
-                                        nrow = length(params$context_weights),
-                                        byrow = T
-                                    )
-                                ),
-                                1,
-                                -1
-                            )
+                        use_context <- ifelse(
+                            as.vector(
+                                matrix(
+                                    rep(considerations[[i]], length(params$context_weights)),
+                                    nrow = length(params$context_weights),
+                                    byrow = T
+                                )
+                            ),
+                            1,
+                            -1
+                        )[!is.na(self$contexts[[i]])]
+                        return(
+                            use_context *
+                                self$contexts[[i]][!is.na(self$contexts[[i]])] **
+                                use_context  # In case of 0
+                        )
                     }
                 )
             )
         },
 
         find_ind_parts = function(context_weighted, considerations) {
+            if (self$id == 21) {
+                print(sprintf("Node %d is calculating ind parts", self$id))
+                print("Reputations")
+                print(self$reputations)
+            }
             unlist(
                 lapply(
                     self$contacts,
@@ -487,6 +509,12 @@ Device <- R6::R6Class(
                             !is.na(self$contexts[[i]])
                         ])
                         denominator <- sum(ow * considerations[[i]])
+                        if (self$id == 21) {
+                            # print(sprintf("On node %d", i))
+                            # print(self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])])
+                            # print(self$contexts[[i]])
+                            # print(denominator)
+                        }
                         return(
                             `if`(
                                 self$reputations[[i]] < 0 || denominator == 0,
@@ -507,6 +535,41 @@ Device <- R6::R6Class(
             )
         },
 
+        find_ind = function(context_weighted, considerations) {
+            ow <- unlist(
+                lapply(
+                    self$contacts,
+                    function(i) {
+                        return(
+                            omega(context_weighted, self$contexts[[i]][
+                                !is.na(self$contexts[[i]])
+                            ]) * considerations[[i]]
+                        )
+                    }
+                )
+            )
+            denominator <- sum(ow)
+            numerator <- sum(
+                unlist(
+                    lapply(
+                        self$contacts,
+                        function(i) {
+                            return(
+                                ow *
+                                    omega(self$cached_contexts[[i]], self$contexts[[i]][
+                                            !is.na(self$contexts[[i]])
+                                        ]) *
+                                        self$reputations[[i]] *
+                                        self$stored_trusts[[i]][!is.na(self$stored_trusts[[i]])] *
+                                        considerations[[i]]
+                            )
+                        }
+                    )
+                )
+            )
+            return(numerator / denominator)
+        },
+
         performance_updates = function() {
             if (params$time_now > 1) {
                 for (i in self$contacts) {
@@ -520,7 +583,7 @@ Device <- R6::R6Class(
             if (length(!is.na(self$stored_trusts[[id_sender]])) > 1) {
                 sender_trust <- self$stored_trusts[[id_sender]][[params$time_now]]
                 sender_context <- self$contexts[[id_sender]][get_context_index(params$time_now)]
-                prev_time <- tail(which(!is.na(self$stored_trusts[[id_sender]])), 1)
+                prev_time <- tail(which(!is.na(self$stored_trusts[[id_sender]])), 2)[[1]]
                 if (any(is.na(
                         c(
                             self$stored_trusts[[self$id]][prev_time],
@@ -548,7 +611,7 @@ Device <- R6::R6Class(
                     )
                     trends_diff <- abs(direct_trend - indirect_trend)
                     trends_max <- max(abs(direct_trend), abs(indirect_trend))
-                    if (trends_diff < trends_max + params$trust_rep_adj_range) {
+                    if (trends_diff < trends_max) {
                         self$trust_increment(id_sender)
                     } else if (trends_diff <= max(trends_max, params$trend_threshold)) {
                         self$unknown_increment(id_sender)
@@ -613,7 +676,7 @@ Device <- R6::R6Class(
             )
             if (params$time_now > 1) {
                 self$reputations[[id_sender]] <- reputation_combination(
-                    self$cached_contexts[[id_sender]],
+                    self$old_contexts[[id_sender]],
                     sender_context,
                     c_new,
                     self$reputations[[id_sender]],
@@ -632,7 +695,12 @@ Device <- R6::R6Class(
                     params$trust_rep_adj_range) {
                     self$reputations[[id_sender]] <- params$init_reputation
                 }
+                # print("Old contexts")
+                # print(self$old_contexts[[id_sender]])
+                # print("Old trust")
+                # print(self$old_trusts[[id_sender]])
             }
+            # print(self$acceptable_recs)
             self$cached_contexts[[id_sender]] <- c_new
         },
 

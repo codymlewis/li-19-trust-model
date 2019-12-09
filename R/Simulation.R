@@ -1,6 +1,4 @@
-#' @include ContextSetter.R
-#' @include GoodMouther.R
-#' @include BadMouther.R
+#' @include Adversaries.R
 #' @include ServiceProvider.R
 #' @include Field.R
 #' @include Device.R
@@ -41,7 +39,15 @@ run_simulation <- function(total_time,
     cat("Plotting estimated trusts...\n")
     dir.create("images/plots", showWarning = FALSE)
     for (i in 1:params$number_nodes) {
-        plot_estimated_trust(i, map_and_devices$devices)
+        plot_estimated_trust(
+            i,
+            map_and_devices$devices,
+            title = `if`(
+                i == params$number_nodes,
+                "Estimated Trusts of the Observer",
+                sprintf("Estimated Trusts of Device %d", i)
+            )
+        )
         filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
         ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
         cat_progress(
@@ -251,55 +257,54 @@ create_map_and_devices <- function(map_filename) {
     map <- Field$new(read.csv(map_filename, header = F), T)
     cat("Creating devices...\n")
     devices <- lapply(
-        seq_len(params$number_good_nodes),
+        seq_len(params$number_adversaries),
         function(i) {
             cat_progress(
                 i,
                 params$number_nodes,
                 prefix = sprintf("Device %d of %d", i, params$number_nodes)
             )
-            return(Device$new(i, sp, map))
+            return(params$adversary_type$new(i, sp, map))
         }
     )
-    for (i in seq_len(params$number_adversaries)) {
+    for (i in seq_len(params$number_good_nodes)) {
+        dev_id <- params$number_adversaries+ i
         cat_progress(
-            params$number_good_nodes + i,
+            dev_id,
             params$number_nodes,
             prefix = sprintf("Device %d of %d", i, params$number_nodes)
         )
-        dev_id <- params$number_good_nodes + i
-        devices[[dev_id]] <- params$adversary_type$new(dev_id, sp, map)
+        devices[[dev_id]] <- Device$new(dev_id, sp, map)
     }
-    i <- length(devices) + 1
-    cat_progress(
-        i,
-        params$number_nodes,
-        prefix = sprintf("Device %d of %d", i, params$number_nodes)
-    )
     lapply(
-        1:params$number_good_nodes,
+        1:length(devices),
         function(i) {
             devices[[i]]$add_contact(
                 sample(
-                    setdiff(1:(params$number_nodes - 1), i),
+                    setdiff(1:length(devices), i),
                     params$contacts_per_node
                 ),
                 devices
             )
         }
     )
-    devices[[length(devices) + 1]] <- Observer$new(i, sp, map)
+    i <- length(devices) + 1
+    devices[[i]] <- Observer$new(i, sp, map)
+    cat_progress(
+        i,
+        params$number_nodes,
+        prefix = sprintf("Device %d of %d", i, params$number_nodes)
+    )
     adv_ids <- `if`(
             params$number_adversaries == 0,
             NULL,
-            (params$number_good_nodes + 1):
-            (params$number_good_nodes + params$number_adversaries)
+            1:params$number_adversaries
     )
     num_norm_con <- params$number_observer_contacts - params$number_adversaries
     devices[[length(devices)]]$add_contact(
         c(
             sample(
-                1:params$number_good_nodes,
+                (params$number_adversaries + 1):params$number_good_nodes,
                 `if`(num_norm_con < 0, 0, num_norm_con)
             ),
             adv_ids
@@ -308,9 +313,10 @@ create_map_and_devices <- function(map_filename) {
     )
     cat(
         sprintf(
-            "The observer has %d contacts where %d are adversaries\n",
+            "The observer has %d contacts where %d %s\n",
             length(devices[[length(devices)]]$contacts),
-            length(adv_ids)
+            length(adv_ids),
+            `if`(length(adv_ids) == 1, "is an adversary", "are adversaries")
         )
     )
     return(list(map = map, devices = devices))
