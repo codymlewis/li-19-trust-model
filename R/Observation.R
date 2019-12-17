@@ -9,6 +9,7 @@ Observation <- R6::R6Class(
             self$context <- context
             self$trust <- trust
             self$id_sender <- id_sender
+            invisible(self)
         }
     )
 )

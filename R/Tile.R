@@ -10,17 +10,20 @@ Tile <- R6::R6Class(
 
         initialize = function(terrain) {
             self$terrain <- terrain
+            invisible(self)
         },
 
         add_device = function(device) {
             "Add a device here"
             self$objects[[device$id]] <- device
             self$obj_ids <- c(self$obj_ids, device$id)
+            invisible(self)
         },
 
         add_base_station = function(base_station) {
             "Add the base station here"
             self$base_station[[1]] <- base_station
+            invisible(self)
         },
 
         get_base_station = function() {
@@ -32,6 +35,7 @@ Tile <- R6::R6Class(
             "Remove a device from here"
             self$objects[[id]] <- 0
             self$obj_ids <- self$obj_ids[self$obj_ids != id]
+            invisible(self)
         },
 
         has_devices = function() {
@@ -57,6 +61,7 @@ Tile <- R6::R6Class(
             if (is_edge) {
                 self$signal_edge <- TRUE
             }
+            invisible(self)
         }
     )
 )

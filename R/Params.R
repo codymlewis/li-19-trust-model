@@ -42,15 +42,22 @@ Params <- R6::R6Class(
         contacts_per_node = 10,
         rand_context = F,
         number_observer_contacts = 10,
+        tdu_increment = 1,
+        observer_targeted = F,
+        target_location = c(1, 1),
+        target_capability = 50,
+        target_velocity = 5,
 
         initialize = function() {
             self$number_good_nodes <- self$number_nodes - (self$number_adversaries + 1)
             self$img_width <- ceiling(5**(1 - self$map_width / 1000)) * self$map_width
             self$img_height <- ceiling(5**(1 - self$map_height / 1000)) * self$map_height
+            invisible(self)
         },
 
         increment_time = function() {
             self$time_now <- self$time_now + 1
+            invisible(self)
         },
 
         configure = function(data) {
@@ -85,7 +92,12 @@ Params <- R6::R6Class(
             self$eta_i <- data$eta_i
             self$gap_factor <- data$gap_factor
             self$min_trans <- data$min_trans
+            self$tdu_increment <- data$tdu_increment
             self$max_trans <- data$max_trans
+            self$target_location <- data$target_location
+            self$target_capability <- data$target_capability
+            self$target_velocity <- data$target_velocity
+
             self$compression_factor <- `if`(
                 data$compression_factor <= 0,
                 Inf,
@@ -95,11 +107,12 @@ Params <- R6::R6Class(
             self$adversary_type <- get_adversary_type(data$adversary_type)
             self$contacts_per_node <- data$contacts_per_node
             self$rand_context <- data$rand_context
-
+            self$observer_targeted <- data$observer_targeted
             self$number_good_nodes <- self$number_nodes - (self$number_adversaries + 1)
             self$img_width <- ceiling(5**(1 - self$map_width / 1000)) * self$map_width
             self$img_height <- ceiling(5**(1 - self$map_height / 1000)) * self$map_height
             self$number_observer_contacts <- data$number_observer_contacts
+            invisible(self)
         }
     )
 )

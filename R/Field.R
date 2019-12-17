@@ -51,6 +51,7 @@ Field <- R6::R6Class(
                 }
             }
             grid_connect(self, base_stations)
+            invisible(self)
         },
 
         size = function() {

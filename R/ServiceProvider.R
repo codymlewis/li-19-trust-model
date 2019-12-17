@@ -19,6 +19,7 @@ ServiceProvider <- R6::R6Class(
                 rep(UNKNOWN, p_unknown * sample_factor),
                 rep(DISTRUST, p_distrust * sample_factor)
             )
+            invisible(self)
         },
 
         provide_service = function() {

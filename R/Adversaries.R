@@ -2,18 +2,13 @@ BadMouther <- R6::R6Class(
     "BadMouther",
     inherit = Device,
     public = list(
-        send_rec = function(devices) {
-            rs_dir_trust <- self$find_direct_trust(
-                self$contexts[[self$id]][get_context_index(params$time_now)]
-            )
-            self$stored_trusts[[self$id]][[params$time_now]] <- rs_dir_trust$trust_comb
-            self$emit_observation(
+        create_rec = function(rs_dir_trust) {
+            return(
                 Observation$new(
                     self$contexts[[self$id]][get_context_index(params$time_now)],
                     -1,
                     self$id
-                ),
-                devices
+                )
             )
         }
     )
@@ -24,10 +19,20 @@ ContextSetter <- R6::R6Class(
     "ContextSetter",
     inherit = Device,
     public = list(
-        send_rec = function(devices) {
-            self$emit_observation(
+        create_rec = function(rs_dir_trust) {
+            return(
                 Observation$new(
-                    c(params$time_now, 0.5, 0.5, 0.5),
+                    normalize(
+                        c(
+                            params$time_now,
+                            params$target_capability,
+                            euc_dist(
+                                params$target_location,
+                                self$service_provider$location
+                            ),
+                            params$target_velocity
+                        )
+                    ),
                     -1,
                     self$id
                 )

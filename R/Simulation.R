@@ -19,8 +19,71 @@ run_simulation <- function(total_time,
                            config = system.file(
                                "extdata", "params.json",
                                package = "li19trustmodel"
-                           )) {
-    params$configure(rjson::fromJSON(file=config))
+                           ),
+                           write_plots = TRUE) {
+    return(run_sim_part(total_time, map_filename, rjson::fromJSON(file=config), write_plots))
+}
+
+
+#' Run a batch of simulations in a console interface
+#'
+#' Simulate the trust model and the mobile network and iterate for an amount
+#' of time for differing amounts of adversaries
+#' @keywords trust model simulate simulation run
+#' @export batch_simulation
+
+batch_simulation <- function(total_time,
+                           map_filename = system.file(
+                               "extdata", "map.csv",
+                               package = "li19trustmodel"),
+                           config = system.file(
+                               "extdata", "params.json",
+                               package = "li19trustmodel"
+                           ),
+                           num_adversaries = c(0, 2, 5, 8, 10),
+                           adversary_types = c("BadMouther", "ContextSetter"),
+                           colours = c("blue", "red", "green", "orange", "purple")) {
+    dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
+    config <- rjson::fromJSON(file=config)
+    for (adv_type in adversary_types) {
+        config$adversary_type <- adv_type
+        cat(sprintf("Running simulations with adversaries of %s type\n\n", adv_type))
+        data_list <- lapply(
+            num_adversaries,
+            function(i) {
+                config$number_adversaries <- i
+                cat(sprintf("Running simulations with %d adversaries...\n", i))
+                return(run_sim_part(total_time, map_filename, config, FALSE))
+            }
+        )
+        names(data_list) <- sprintf("%d Adversaries", num_adversaries)
+        data <- reshape2::melt(data_list, id.vars = "transactions")
+        data$L1 <- factor(
+            data$L1,
+            levels = stringr::str_sort(levels(as.factor(data$L1)), numeric = TRUE)
+        )
+        cat("Creating plots...\n")
+        ggplot2::ggplot(data = data,
+                               ggplot2::aes(x = transactions, y = value, colour = as.factor(L1))) +
+            ggplot2::geom_line() +
+            ggplot2::scale_colour_manual(values = colours) +
+            ggplot2::labs(
+                title = "Estimated Trusts of the Observer",
+                x = "Time",
+                y = "Estimated Trust",
+                colour = NULL
+            ) +
+            ggplot2::scale_y_continuous(limits = c(-1.1, 1.1)) +
+            ggplot2::theme(legend.position = "bottom")
+        filename <- sprintf("images/plots/%s-estimated_trusts.png", adv_type)
+        ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
+        cat(sprintf("Saved plot as %s\n", filename))
+    }
+}
+
+
+run_sim_part <- function(total_time, map_filename, config, write_plots) {
+    params$configure(config)
     map_and_devices <- create_map_and_devices(map_filename)
     dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
     img <- write_map(map_and_devices$map)
@@ -36,27 +99,40 @@ run_simulation <- function(total_time,
         )
         params$increment_time()
     }
-    cat("Plotting estimated trusts...\n")
-    dir.create("images/plots", showWarning = FALSE)
-    for (i in 1:params$number_nodes) {
-        plot_estimated_trust(
-            i,
-            map_and_devices$devices,
-            title = `if`(
-                i == params$number_nodes,
-                "Estimated Trusts of the Observer",
-                sprintf("Estimated Trusts of Device %d", i)
+    cat("Done.\n\n")
+    if (write_plots) {
+        cat("Plotting estimated trusts...\n")
+        dir.create("images/plots", showWarning = FALSE)
+        for (i in 1:params$number_nodes) {
+            plot_estimated_trust(
+                i,
+                map_and_devices$devices,
+                title = `if`(
+                    i == params$number_nodes,
+                    "Estimated Trusts of the Observer",
+                    sprintf("Estimated Trusts of Device %d", i)
+                )
             )
-        )
-        filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
-        ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
-        cat_progress(
-            i,
-            params$number_nodes,
-            prefix = sprintf("Device %d of %d", i, params$number_nodes),
-            postfix = sprintf("Saved to %s", filename)
-        )
+            filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
+            ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
+            cat_progress(
+                i,
+                params$number_nodes,
+                prefix = sprintf("Device %d of %d", i, params$number_nodes),
+                postfix = sprintf("Saved to %s", filename)
+            )
+        }
+        csv_estimated_trust(params$number_nodes, map_and_devices$devices)
+        cat("Written csv of observer's estimated trusts\n")
     }
+    return(
+        data.frame(
+            transactions = seq_len(
+                length(map_and_devices$devices[[params$number_nodes]]$estimated_trusts)
+            ),
+            estimated_trusts = map_and_devices$devices[[params$number_nodes]]$estimated_trusts
+        )
+    )
 }
 
 
@@ -119,6 +195,8 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
             )
             ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
             cat(sprintf("Saved estimated trust plot to %s\n", filename))
+            csv_estimated_trust(params$number_nodes, map_and_devices$devices)
+            cat("Written csv of observer's estimated trusts\n")
             cat("Bye.\n")
             quit("no")
         }
@@ -161,7 +239,6 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
 
 write_map <- function(map, save = TRUE) {
     cat("Creating map image...\n")
-    npixels <- params$img_width * params$img_height
     red <- matrix(0, nrow = params$img_height, ncol = params$img_width)
     green <- matrix(0, nrow = params$img_height, ncol = params$img_width)
     blue <- matrix(0, nrow = params$img_height, ncol = params$img_width)
@@ -242,8 +319,10 @@ draw_map <- function(cur_tile) {
     }
     if (cur_tile$has_devices()) {
         dev_class <- class(cur_tile$get_first_dev())[[1]]
-        if (grepl("Device", dev_class) || grepl("Observer", dev_class)) {
-            result <- c(1, 0, 1)
+        if (grepl("Device", dev_class)) {
+            result <- c(0, 0, 1)
+        } else if (grepl("Observer", dev_class)) {
+            result <- c(0.4, 0.4, 0.4)
         } else {
             result <- c(1, 0, 0)
         }
@@ -345,6 +424,8 @@ transact_and_move <- function(devices) {
             if (length(setdiff(amount_transactions, 0)) >= 1) {
                 device$send_rec(devices)
             }
+        } else {
+            device$transactions(devices, can_transact = FALSE)
         }
         device$move()
         new_locs[[device$id]] <- device$location
@@ -379,5 +460,17 @@ plot_estimated_trust <- function(
             plt + ggplot2::geom_line(colour = "blue"),
             plt + ggplot2::geom_point(colour = "blue")
         )
+    )
+}
+
+
+csv_estimated_trust <- function(dev_id, devices) {
+    write.csv(
+        data.frame(
+            transactions = seq_len(length(devices[[dev_id]]$estimated_trusts)),
+            estimated_trusts = devices[[dev_id]]$estimated_trusts
+        ),
+        file = sprintf("%d-estimated-trusts.csv", dev_id),
+        row.names = FALSE
     )
 }
