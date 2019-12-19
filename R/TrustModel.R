@@ -85,6 +85,7 @@ context_distance <- function(context_target, context_weighted) {
 
 # Estimate how trusted a node will be for the target context
 estimate_trust <- function(context_target, context_weighted, trust_current) {
+    # NOTE: The conditions for the prods have been flipped from the paper
     if (trust_current <= 0) {
         return(
             max(
@@ -95,7 +96,7 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
                             delta(
                                 context_target,
                                 context_weighted,
-                                context_target > context_weighted
+                                context_target < context_weighted
                             )
                     ) *
                     prod(
@@ -103,7 +104,7 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
                             delta(
                                 context_target,
                                 context_weighted,
-                                context_target < context_weighted
+                                context_target > context_weighted
                             )
                     )
             )
@@ -118,7 +119,7 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
                         delta(
                             context_target,
                             context_weighted,
-                            context_target > context_weighted
+                            context_target < context_weighted
                         )
                 ) *
                 prod(
@@ -126,7 +127,7 @@ estimate_trust <- function(context_target, context_weighted, trust_current) {
                         delta(
                             context_target,
                             context_weighted,
-                            context_target < context_weighted
+                            context_target > context_weighted
                         )
                 )
         )

@@ -122,8 +122,6 @@ run_sim_part <- function(total_time, map_filename, config, write_plots) {
                 postfix = sprintf("Saved to %s", filename)
             )
         }
-        csv_estimated_trust(params$number_nodes, map_and_devices$devices)
-        cat("Written csv of observer's estimated trusts\n")
     }
     return(
         data.frame(
@@ -195,8 +193,6 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
             )
             ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
             cat(sprintf("Saved estimated trust plot to %s\n", filename))
-            csv_estimated_trust(params$number_nodes, map_and_devices$devices)
-            cat("Written csv of observer's estimated trusts\n")
             cat("Bye.\n")
             quit("no")
         }
