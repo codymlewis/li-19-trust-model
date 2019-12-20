@@ -201,7 +201,7 @@ Device <- R6::R6Class(
             return(
                 Observation$new(
                     self$contexts[[self$id]][get_context_index(params$time_now)],
-                    min(1, max(-1, rs_dir_trust$trust_comb)),
+                    minimax(rs_dir_trust$trust_comb, -1, 1),
                     self$id,
                     self$transacted
                 )

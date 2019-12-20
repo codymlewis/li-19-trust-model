@@ -249,3 +249,8 @@ get_context_index <- function(i) {
     con_len <- length(params$context_weights)
     return((con_len * (i - 1) + 1):(con_len * i))
 }
+
+
+minimax <- function(x, minima, maxima) {
+    return(max(minima, min(maxima, x)))
+}

@@ -35,7 +35,7 @@
     "number_adversaries": 5,
     "adversary_type": "BadMouther",
     "contacts_per_node": 10,
-    "rand_context": true,
+    "rand_context": false,
     "number_observer_contacts": 10,
     "tdu_increment": 100,
     "observer_targeted": true,
