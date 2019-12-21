@@ -186,6 +186,11 @@ indirect_trust <- function(trusts, reputations, contexts,
 
 # A function used within the indirect and direct trust calculations
 omega <- function(context_weighted, context_target) {
+    # print("context weighted")
+    # print(context_weighted)
+    # print("context target")
+    # print(context_target)
+    # print(sprintf("len cw: %d, len ct: %d", length(context_weighted), length(context_target)))
     return(
         params$eta[[1]]**(
             apply(

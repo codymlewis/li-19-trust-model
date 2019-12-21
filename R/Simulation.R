@@ -354,13 +354,20 @@ create_map_and_devices <- function(map_filename) {
     lapply(
         1:length(devices),
         function(i) {
-            devices[[i]]$add_contact(
-                sample(
+            if (i <= params$number_adversaries) {
+                devices[[i]]$add_contact(
                     setdiff(1:length(devices), i),
-                    params$contacts_per_node
-                ),
-                devices
-            )
+                    devices
+                )
+            } else {
+                devices[[i]]$add_contact(
+                    sample(
+                        setdiff(1:length(devices), i),
+                        params$contacts_per_node
+                    ),
+                    devices
+                )
+            }
         }
     )
     i <- length(devices) + 1

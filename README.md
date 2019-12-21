@@ -3,6 +3,8 @@
 A simulator of the trust model proposed in Context-Aware Trust Management
 System for IoT Applications with Multiple Domains
 
+![Gif of map](https://gitlab.com/codymlewis/li-19-trust-model/raw/master/map.gif)
+
 
 ## Requirements
 

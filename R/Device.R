@@ -377,7 +377,6 @@ Device <- R6::R6Class(
             "Perform a transaction with a service provider"
             normalized_c_target <- normalize(self$get_target_context())
             used_trust <- self$use_trust(normalized_c_target)
-            print(sprintf("used trust: %f", used_trust))
             self$transacted <- FALSE
             if (can_transact) {
                 if (used_trust > params$trust_rep_threshold - params$trust_rep_adj_range) {
@@ -394,7 +393,7 @@ Device <- R6::R6Class(
             }
             prev_est_trust <- tail(self$estimated_trusts, 1)
             for (i in length(self$estimated_trusts):params$time_now) {
-                if (i < params$time_now) {  # Might want to modify this to show decay
+                if (i < params$time_now) {
                     self$estimated_trusts[[i]] <- prev_est_trust
                 } else {
                     self$estimated_trusts[[i]] <- used_trust
@@ -413,7 +412,6 @@ Device <- R6::R6Class(
         use_trust = function(normalized_c_target) {
             "Calculate the trust value to use"
             rs_dir_trust <- self$find_direct_trust(normalized_c_target)
-            print(sprintf("direct trust: %f", rs_dir_trust$trust_comb))
             return(
                 `if`(
                     abs(rs_dir_trust$trust_comb) <=
@@ -486,30 +484,12 @@ Device <- R6::R6Class(
         find_indirect_trust = function(normalized_c_target) {
             "Find the indirect trust of the service provider"
             considerations <- self$get_considerations()
-            all_contexts <- self$get_all_contexts(considerations)
-            if (is.null(all_contexts) || length(all_contexts[all_contexts >= 0]) == 0) {
+            ac <- unlist(self$get_all_contexts(considerations))
+            if (is.null(ac) || length(ac[ac >= 0]) == 0) {
                 return(params$trust_new_contact)
             }
-            context_weighted <- find_weighted_context(all_contexts[all_contexts >= 0])
+            context_weighted <- find_weighted_context(ac)
             ind_trust <- self$find_ind(context_weighted, considerations)
-            # if (self$id == 21) {
-            #     print("context weighted")
-            #     print(context_weighted)
-            #     print("target context")
-            #     print(normalized_c_target)
-            #     print("delta")
-            #     print(delta(
-            #                     normalized_c_target,
-            #                     context_weighted,
-            #                     normalized_c_target > context_weighted
-            #                 ))
-            #     print(sprintf("T_s: %f", ind_trust))
-            #     print(sprintf("Estimate: %f", estimate_trust(
-            #         normalized_c_target,
-            #         context_weighted,
-            #         ind_trust
-            #     )))
-            # }
             return(
                 estimate_trust(
                     normalized_c_target,
@@ -525,11 +505,22 @@ Device <- R6::R6Class(
                 lapply(
                     1:params$number_nodes,
                     function(i) {
-                        `if`(
-                            i %in% self$contacts & !i %in% excludes,
-                            self$acceptable_recs[[i]][which(!is.na(self$stored_trusts[[i]]))],
-                            FALSE
-                        )
+                        if (i %in% self$contacts & !i %in% excludes) {
+                            acc_recs <- which(
+                                self$acceptable_recs[[i]][
+                                    which(!is.na(self$stored_trusts[[i]]))
+                                ]
+                            )
+                            return(
+                                `if`(
+                                    length(acc_recs) > 0,
+                                    tail(acc_recs, 1),
+                                    0
+                                )
+                            )
+                        } else {
+                            return(0)
+                        }
                     }
                 )
             )
@@ -537,25 +528,16 @@ Device <- R6::R6Class(
 
         get_all_contexts = function(considerations) {
             "Get all of the context values that should be considered"
-            unlist(
+            return(
                 lapply(
                     self$contacts,
                     function(i) {
-                        use_context <- ifelse(
-                            as.vector(
-                                matrix(
-                                    rep(considerations[[i]], length(params$context_weights)),
-                                    nrow = length(params$context_weights),
-                                    byrow = T
-                                )
-                            ),
-                            1,
-                            -1
-                        )[!is.na(self$contexts[[i]])]
                         return(
-                            use_context *
-                                self$contexts[[i]][!is.na(self$contexts[[i]])] **
-                                use_context  # In case of 0
+                            `if`(
+                                considerations[[i]] == 0,
+                                NULL,
+                                self$contexts[[i]][get_context_index(considerations[[i]])]
+                            )
                         )
                     }
                 )
@@ -568,9 +550,16 @@ Device <- R6::R6Class(
                 self$contacts,
                 function(i) {
                     return(
-                        omega(context_weighted, self$contexts[[i]][
-                            !is.na(self$contexts[[i]])
-                        ]) * considerations[[i]]
+                        `if`(
+                            considerations[[i]] == 0,
+                            NULL,
+                            omega(
+                                context_weighted,
+                                self$contexts[[i]][
+                                    get_context_index(considerations[[i]])
+                                ]
+                            )
+                        )
                     )
                 }
             )
@@ -580,24 +569,20 @@ Device <- R6::R6Class(
                     lapply(
                         self$contacts,
                         function(i) {
-                            if (self$id == 21) {
-                                print("trust")
-                                print(                                        self$stored_trusts[[i]][
-                                            !is.na(self$stored_trusts[[i]])
-                                        ])
-                                print("considerations")
-                                print(considerations[[i]])
-                            }
                             return(
-                                ow[[which(i == self$contacts)]] * (
-                                    # omega(self$cached_contexts[[i]], self$contexts[[i]][
-                                    #         !is.na(self$contexts[[i]])
-                                    #     ]) *
-                                    #     self$reputations[[i]] *
-                                        self$stored_trusts[[i]][
-                                            !is.na(self$stored_trusts[[i]])
-                                        ] *
-                                        considerations[[i]]
+                                `if`(
+                                    considerations[[i]] == 0,
+                                    NULL,
+                                    ow[[which(i == self$contacts)]] * (
+                                        omega(
+                                            self$cached_contexts[[i]],
+                                            self$contexts[[i]][
+                                                get_context_index(considerations[[i]])
+                                            ]
+                                        ) *
+                                        self$reputations[[i]] *
+                                        self$stored_trusts[[i]][considerations[[i]]]
+                                    )
                                 )
                             )
                         }
@@ -708,10 +693,6 @@ Device <- R6::R6Class(
                 self$contacts,
                 function(i) { self$combine_rep(i) }
             )
-            # if (self$id == 21) {
-            #     print("reputations")
-            #     print(self$reputations)
-            # }
             invisible(self)
         },
 
