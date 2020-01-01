@@ -17,6 +17,11 @@ Observer <- R6::R6Class(
             invisible(self)
         },
 
+        transaction = function(devices, can_transact = TRUE) {
+            super$transaction(devices, can_transact)
+            self$acceptable_recs[[self$id]][[params$time_now]] <- FALSE
+        },
+
         use_trust = function(normalized_c_target) {
             rs_dir_trust <- self$find_direct_trust(normalized_c_target)
             return(self$find_indirect_trust(normalized_c_target))

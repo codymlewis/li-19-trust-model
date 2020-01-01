@@ -186,11 +186,6 @@ indirect_trust <- function(trusts, reputations, contexts,
 
 # A function used within the indirect and direct trust calculations
 omega <- function(context_weighted, context_target) {
-    # print("context weighted")
-    # print(context_weighted)
-    # print("context target")
-    # print(context_target)
-    # print(sprintf("len cw: %d, len ct: %d", length(context_weighted), length(context_target)))
     return(
         params$eta[[1]]**(
             apply(
@@ -212,19 +207,29 @@ omega <- function(context_weighted, context_target) {
 # Calculate the expected value of change in the trust
 trend_of_trust <- function(trust0, trust1, context0, context1) {
     return(
-        trust1 -
-            params$eta[[1]]**(context_distance(context1, context0) /
-                params$delta)
-            * trust0
+        `if`(
+            trust0 == 0,
+            trust1,
+            trust1 -
+                params$eta[[1]]**(context_distance(context1, context0) /
+                    params$delta)
+                * trust0
+        )
     )
 }
 
 
 # Calculate a new reputation value for a service provider
 reputation_combination <- function(context_old, context_target, context_new,
-                                   reputation_old, reputation) {
+                                   reputation_old, reputation, verbose) {
     omega_new_old <- omega(context_new, context_old)
     omega_new_target <- omega(context_new, context_target)
+    # if (verbose) {
+    #     print(sprintf("omega new old: %f", omega_new_old))
+    #     print(sprintf("omega new target: %f", omega_new_target))
+    #     print(sprintf("reputation old: %f", reputation_old))
+    #     print(sprintf("reputation: %f", reputation))
+    # }
     return(
         omega_new_old * reputation_old + omega_new_target * params$rho**
             `if`(
