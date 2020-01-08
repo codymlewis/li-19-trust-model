@@ -71,7 +71,7 @@ test_that("estimate trust works", {
             c(0.3, 0.5, 0.6, 0.1),
             0.1
         ),
-        equals(0.1167438402791883)
+        equals(0.09330239773694914)
     )
     expect_that(
         estimate_trust(
@@ -79,7 +79,7 @@ test_that("estimate trust works", {
             c(0.3, 0.5, 0.6, 0.1),
             -0.1
         ),
-        equals(-0.09330239773694914)
+        equals(-0.1167438402791883)
     )
 })
 
