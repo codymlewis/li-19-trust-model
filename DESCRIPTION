@@ -14,7 +14,8 @@ Imports:
     tcltk2,
     R6,
     rjson,
-    Cairo
+    Cairo,
+    igraph
 License: What license it uses
 Encoding: UTF-8
 LazyData: true

@@ -398,14 +398,7 @@ Device <- R6::R6Class(
                     self$acceptable_recs[[self$id]][[params$time_now]] <- TRUE
                 }
             }
-            prev_est_trust <- tail(self$estimated_trusts, 1)
-            for (i in length(self$estimated_trusts):params$time_now) {
-                if (i < params$time_now) {
-                    self$estimated_trusts[[i]] <- prev_est_trust
-                } else {
-                    self$estimated_trusts[[i]] <- used_trust
-                }
-            }
+            self$fill_estimated_trust(used_trust)
             self$contexts[[self$id]][get_context_index(params$time_now)] <- normalized_c_target
             self$observed_trusts[[params$time_now]] <- weighted_trust(
                 compute_trust(self$sp_trust, self$sp_distrust, self$sp_unknown),
@@ -507,6 +500,11 @@ Device <- R6::R6Class(
             )
         },
 
+        fill_estimated_trust = function(used_trust) {
+            self$estimated_trusts[[params$time_now]] <- used_trust
+            invisible(self)
+        },
+
         get_considerations = function(excludes=c()) {
             "Find which recommendations should be considered"
             return(
@@ -575,10 +573,6 @@ Device <- R6::R6Class(
                     lapply(
                         self$contacts,
                         function(i) {
-                            # if (self$id == 21) {
-                            #     print(sprintf("Trust of node %d", i))
-                            #     print(self$stored_trusts[[i]][considerations[[i]]])
-                            # }
                             return(
                                 `if`(
                                     considerations[[i]] == 0,
@@ -615,9 +609,6 @@ Device <- R6::R6Class(
             "Update the stored performance of the observer"
             if (length(which(self$acceptable_recs[[id_sender]])) >= 1) {
                 prev_time <- tail(which(self$acceptable_recs[[id_sender]]), 2)[[1]]
-                # if (self$id == 21) {
-                #     print(c(self$acceptable_recs[[self$id]][c(prev_time, params$time_now)]))
-                # }
                 if (all(c(self$acceptable_recs[[self$id]][c(prev_time, params$time_now)]))) {
                     context_trust_now <- self$get_contexts_trust(self$id, params$time_now)
                     context_trust_prev <- self$get_contexts_trust(self$id, prev_time)
@@ -682,19 +673,10 @@ Device <- R6::R6Class(
                 trends_diff <- abs(direct_trend - indirect_trend)
                 trends_max <- max(abs(direct_trend), abs(indirect_trend))
                 if (trends_diff < trends_max) {
-                    # if (self$id == 21) {
-                    #     print("trust increment")
-                    # }
                     self$trust_increment(id_sender)
                 } else if (trends_diff <= max(trends_max, params$trend_threshold)) {
-                    # if (self$id == 21) {
-                    #     print("unknown increment")
-                    # }
                     self$unknown_increment(id_sender)
                 } else {
-                    # if (self$id == 21) {
-                    #     print("distrust increment")
-                    # }
                     self$distrust_increment(id_sender)
                 }
             }
@@ -705,10 +687,6 @@ Device <- R6::R6Class(
                 self$contacts,
                 function(i) { self$combine_rep(i) }
             )
-            # if (self$id == 21) {
-            #     print("reps")
-            #     print(self$reputations)
-            # }
             invisible(self)
         },
 
@@ -716,38 +694,34 @@ Device <- R6::R6Class(
             "Find the new reputation for sender of recommendation"
             if (self$acceptable_recs[[id_sender]][[params$time_now]]) {
                 sender_context <- self$contexts[[id_sender]][get_context_index(params$time_now)]
-                # if (any(head(self$acceptable_recs[[id_sender]], -1))) {
-                    c_new <- find_weighted_context(
-                        c(self$cached_contexts[[id_sender]], sender_context)
-                    )
-                    self$reputations[[id_sender]] <- minimax(
-                        reputation_combination(
-                            self$old_contexts[[id_sender]],
-                            sender_context,
-                            c_new,
-                            self$reputations[[id_sender]],
-                            weighted_trust(
-                                compute_trust(
-                                    self$trust[[id_sender]],
-                                    self$distrust[[id_sender]],
-                                    self$unknown[[id_sender]]
-                                ),
+                c_new <- find_weighted_context(
+                    c(self$cached_contexts[[id_sender]], sender_context)
+                )
+                self$reputations[[id_sender]] <- minimax(
+                    reputation_combination(
+                        self$old_contexts[[id_sender]],
+                        sender_context,
+                        c_new,
+                        self$reputations[[id_sender]],
+                        weighted_trust(
+                            compute_trust(
                                 self$trust[[id_sender]],
                                 self$distrust[[id_sender]],
                                 self$unknown[[id_sender]]
-                            ), self$id == 21
-                        ),
-                        -1,
-                        1
-                    )
-                    if (abs(self$reputations[[id_sender]]) <=
-                        params$trust_rep_adj_range) {
-                        self$reputations[[id_sender]] <- params$init_reputation
-                    }
-                    self$cached_contexts[[id_sender]] <- c_new
-                # } else {
-                #     self$cached_contexts[[id_sender]] <- sender_context
-                # }
+                            ),
+                            self$trust[[id_sender]],
+                            self$distrust[[id_sender]],
+                            self$unknown[[id_sender]]
+                        )
+                    ),
+                    -1,
+                    1
+                )
+                if (abs(self$reputations[[id_sender]]) <=
+                    params$trust_rep_adj_range) {
+                    self$reputations[[id_sender]] <- params$init_reputation
+                }
+                self$cached_contexts[[id_sender]] <- c_new
             }
             invisible(self)
         },

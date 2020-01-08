@@ -10,6 +10,11 @@ BadMouther <- R6::R6Class(
                     self$id
                 )
             )
+        },
+
+        fill_estimated_trust = function(used_trust) {
+            self$estimated_trusts[[params$time_now]] <- -1
+            invisible(self)
         }
     )
 )
@@ -37,6 +42,11 @@ ContextSetter <- R6::R6Class(
                     self$id
                 )
             )
+        },
+
+        fill_estimated_trust = function(used_trust) {
+            self$estimated_trusts[[params$time_now]] <- -1
+            invisible(self)
         }
     )
 )

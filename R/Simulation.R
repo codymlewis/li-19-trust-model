@@ -106,12 +106,7 @@ run_sim_part <- function(total_time, map_filename, config, write_plots) {
         for (i in 1:params$number_nodes) {
             plot_estimated_trust(
                 i,
-                map_and_devices$devices,
-                title = `if`(
-                    i == params$number_nodes,
-                    "Estimated Trusts of the Observer",
-                    sprintf("Estimated Trusts of Device %d", i)
-                )
+                map_and_devices$devices
             )
             filename <- sprintf("images/plots/device-%d-estimated-trust.png", i)
             ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
@@ -152,6 +147,7 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     img <- write_map(map_and_devices$map)
     map_filename <- sprintf("images/maps/map-%d.png", params$time_now)
     cat("Performing transactions...\n")
+
     tt <- tcltk::tktoplevel()
     tcltk::tktitle(tt) <- "Li 2019 Trust Model"
     tcltk::tcl(
@@ -163,33 +159,92 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
     )
     maplabel <- tcltk2::tk2label(tt, image = "map", compound = "image")
     tcltk::tkgrid(maplabel, row = "0", column = "0")
-    timelabel <- tcltk2::tk2label(tt, text = sprintf("Current time: %d", params$time_now))
-    tcltk::tkgrid(timelabel, row = "1", column = "0")
+
     filename <- tempfile(fileext = ".png")
     Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
     print(
         plot_estimated_trust(
             length(length(map_and_devices$devices)),
-            map_and_devices$devices,
-            title = "Estimated Trusts of the Observer"
+            map_and_devices$devices
         )
     )
     dev.off()
     tcltk::tcl("image", "create", "photo", "trustest", file = filename)
     trustlabel <- tcltk2::tk2label(tt, image = "trustest", compound = "image")
     tcltk::tkgrid(trustlabel, row = "0", column = "1")
+
+    tp <- tcltk2::tk2frame(tt)
+    tcltk::tkgrid(tp, row = "1", column = "1")
+
+    timelabel <- tcltk2::tk2label(tp, text = sprintf("Current time: %d", params$time_now))
+    tcltk::tkgrid(timelabel, row = "0", column = "1")
+
+    tcltk::tkgrid(tcltk2::tk2label(tp, text = "Chosen node: "), row = "1", column = "0")
+
+    chosen_node_cb <- tcltk::ttkcombobox(
+        tp,
+        textvariable = paste(),
+        values = seq_len(params$number_nodes)
+    )
+    tcltk::tkgrid(chosen_node_cb, row = "1", column = "1")
+
+    chosen_node <- as.integer(tcltk::tkget(chosen_node_cb))
+    chosen_node <- `if`(
+        length(chosen_node) == 0 ||
+            is.na(chosen_node) ||
+            chosen_node > length(map_and_devices$devices),
+        length(map_and_devices$devices),
+        chosen_node
+    )
+    cn <- map_and_devices$devices[[chosen_node]]
+
+    contextvals_label <- tcltk2::tk2label(
+        tp,
+        text = paste(
+            sprintf(
+                "%s: %f",
+                c("Capability", "Distance", "Velocity"),
+                cn$get_target_context()[2:4]
+            ),
+            collapse = ", "
+        )
+    )
+    tcltk::tkgrid(contextvals_label, row = "2", column = "1")
+
+    tcltk::tkgrid(tcltk2::tk2label(tp, text = "Reputations:"), row = "3", column = "0")
+    reps_label <- tcltk2::tk2label(
+        tp,
+        text = paste(
+            sprintf(
+                "Node %d:\t%f",
+                1:length(map_and_devices$devices),
+                cn$reputations
+            ),
+            collapse = "\n"
+        )
+    )
+    tcltk::tkgrid(reps_label, row = "3", column = "1")
+
+    filename <- tempfile(fileext = ".png")
+    Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
+    plot_network(map_and_devices$devices[[chosen_node]])
+    dev.off()
+    tcltk::tcl("image", "create", "photo", "network", file = filename)
+    netlabel <- tcltk2::tk2label(tt, image = "network", compound = "image")
+    tcltk::tkgrid(netlabel, row = "1", column = "0")
+    old_chosen_node <- chosen_node
+
     closebut <- tcltk2::tk2button(
-        tt,
+        tp,
         text = "Save and Exit",
         command = function() {
             plot_estimated_trust(
-                length(map_and_devices$devices),
-                map_and_devices$devices,
-                title = "Estimated Trusts of the Observer"
+                chosen_node,
+                map_and_devices$devices
             )
             filename <- sprintf(
                 "images/plots/device-%d-estimated-trust.png",
-                length(map_and_devices$devices)
+                chosen_node
             )
             ggplot2::ggsave(file = filename, width = 7, height = 7, dpi = 320, type = "cairo")
             cat(sprintf("Saved estimated trust plot to %s\n", filename))
@@ -197,7 +252,9 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
             quit("no")
         }
     )
-    tcltk::tkgrid(closebut, row = "1", column = "1")
+    tcltk::tkgrid(tcltk2::tk2label(tp, text = " "), row = "4", column = "1")
+    tcltk::tkgrid(closebut, row = "5", column = "1")
+
     repeat {
         set_trusts(map_and_devices$devices)
         movements <- transact_and_move(map_and_devices$devices)
@@ -217,16 +274,58 @@ run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "
         )
         filename <- tempfile(fileext = ".png")
         Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
+        chosen_node <- as.integer(tcltk::tkget(chosen_node_cb))
+        chosen_node <- `if`(
+            length(chosen_node) == 0 ||
+                is.na(chosen_node) ||
+                chosen_node > length(map_and_devices$devices),
+            length(map_and_devices$devices),
+            chosen_node
+        )
         print(
             plot_estimated_trust(
-                length(map_and_devices$devices),
-                map_and_devices$devices,
-                title = "Estimated Trusts of the Observer"
+                chosen_node,
+                map_and_devices$devices
             )
         )
         dev.off()
         tcltk::tcl("image", "create", "photo", "trustest", file = filename)
+        if (chosen_node != old_chosen_node) {
+            filename <- tempfile(fileext = ".png")
+            Cairo::CairoPNG(
+                filename = filename,
+                width = params$img_width,
+                height = params$img_height
+            )
+            plot_network(map_and_devices$devices[[chosen_node]])
+            dev.off()
+            tcltk::tcl("image", "create", "photo", "network", file = filename)
+            old_chosen_node <- chosen_node
+        }
         tcltk::tkconfigure(timelabel, text = sprintf("Current time: %d", params$time_now))
+        cn <- map_and_devices$devices[[chosen_node]]
+        tcltk::tkconfigure(
+            contextvals_label,
+            text = paste(
+                sprintf(
+                    "%s: %f",
+                    c("Capability", "Distance", "Velocity"),
+                    cn$get_target_context()[2:4]
+                ),
+                collapse = ", "
+            )
+        )
+        tcltk::tkconfigure(
+            reps_label,
+            text = paste(
+                sprintf(
+                    "Node %d:\t%f", 
+                    1:length(map_and_devices$devices),
+                    cn$reputations
+                ),
+                collapse = "\n"
+            )
+        )
         params$increment_time()
     }
     tcltk::tkdestroy(tt)
@@ -308,7 +407,15 @@ draw_map <- function(cur_tile) {
         result <- c(0.549, 0.761, 0.376)
     }
     if (cur_tile$signal_edge) {
-        result <- c(0, 0, 0)
+        result <- sapply(
+            result,
+            function(i) {
+                max(0, result[[i]] - 0.1)
+            }
+        )
+    }
+    if (length(cur_tile$service_provider)) {
+        result <- c(0, 1, 0)
     }
     if (length(cur_tile$base_station)) {
         result <- c(0.2, 0.2, 0.2)
@@ -330,6 +437,7 @@ draw_map <- function(cur_tile) {
 create_map_and_devices <- function(map_filename) {
     sp <- ServiceProvider$new()
     map <- Field$new(read.csv(map_filename, header = F), T)
+    map$add_service_provider(sp)
     cat("Creating devices...\n")
     devices <- lapply(
         seq_len(params$number_adversaries),
@@ -363,13 +471,17 @@ create_map_and_devices <- function(map_filename) {
                 devices[[i]]$add_contact(
                     sample(
                         setdiff(1:length(devices), i),
-                        params$contacts_per_node
+                        min(params$contacts_per_node, params$number_nodes - 2)
                     ),
                     devices
                 )
             }
         }
     )
+    if (params$number_adversaries + 1 < params$number_nodes) {
+        i <- params$number_adversaries + 1
+        devices[[i]]$add_contact(setdiff(1:length(devices), i), devices)
+    }
     i <- length(devices) + 1
     devices[[i]] <- Observer$new(i, sp, map)
     cat_progress(
@@ -382,13 +494,20 @@ create_map_and_devices <- function(map_filename) {
             NULL,
             1:params$number_adversaries
     )
-    num_norm_con <- params$number_observer_contacts - params$number_adversaries
+    num_norm_con <- params$number_observer_contacts - params$number_adversaries - 1
+    possible_contacts <- (params$number_adversaries + 2):
+                (params$number_adversaries + params$number_good_nodes)
     devices[[length(devices)]]$add_contact(
         c(
-            sample(
-                (params$number_adversaries + 1):params$number_good_nodes,
-                `if`(num_norm_con < 0, 0, num_norm_con)
+            `if`(
+                length(possible_contacts) > 1,
+                sample(
+                    possible_contacts,
+                    `if`(num_norm_con < 0, 0, num_norm_con)
+                ),
+                possible_contacts
             ),
+            `if`(num_norm_con > 0, params$number_adversaries + 1, NULL),
             adv_ids
         ),
         devices
@@ -441,17 +560,18 @@ transact_and_move <- function(devices) {
 }
 
 
-plot_estimated_trust <- function(
-                                 dev_id,
-                                 devices,
-                                 title = sprintf("Estimated Trusts of Device %d", dev_id)) {
+plot_estimated_trust <- function(dev_id, devices) {
     data <- data.frame(
         transactions = seq_len(length(devices[[dev_id]]$estimated_trusts)),
         estimated_trusts = devices[[dev_id]]$estimated_trusts
     )
     plt <- ggplot2::ggplot(data = data, ggplot2::aes(x = transactions, y = estimated_trusts)) +
         ggplot2::labs(
-            title = title,
+            title = `if`(
+                dev_id == params$number_nodes, 
+                "Estimated Trusts of Device the Observer", 
+                sprintf("Estimated Trusts of Device %d", dev_id)
+            ),
             x = "Time",
             y = "Estimated Trust",
             colour = NULL
@@ -476,4 +596,16 @@ csv_estimated_trust <- function(dev_id, devices) {
         file = sprintf("%d-estimated-trusts.csv", dev_id),
         row.names = FALSE
     )
+}
+
+
+plot_network <- function(dev) {
+    g <- igraph::make_empty_graph()
+    g <- igraph::add_vertices(g, params$number_adversaries, color = "red", label.color = "white")
+    g <- igraph::add_vertices(g, params$number_good_nodes, color = "blue", label.color = "white")
+    g <- igraph::add_vertices(g, 1, color = "gray")
+    for (i in dev$contacts) {
+        g <- igraph::add_edges(g, c(dev$id, i))
+    }
+    plot(igraph::as.undirected(g, "collapse"))
 }

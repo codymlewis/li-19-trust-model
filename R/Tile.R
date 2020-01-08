@@ -7,6 +7,7 @@ Tile <- R6::R6Class(
         terrain = NULL,
         base_station = list(),
         signal_edge = FALSE,
+        service_provider = list(),
 
         initialize = function(terrain) {
             self$terrain <- terrain
@@ -23,6 +24,11 @@ Tile <- R6::R6Class(
         add_base_station = function(base_station) {
             "Add the base station here"
             self$base_station[[1]] <- base_station
+            invisible(self)
+        },
+
+        add_service_provider = function(service_provider) {
+            self$service_provider[[1]] <- service_provider
             invisible(self)
         },
 

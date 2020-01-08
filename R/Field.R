@@ -70,6 +70,14 @@ Field <- R6::R6Class(
                 return(list(self$tiles[[location[[1]]]][[location[[2]]]]))
             }
             return(list())
+        },
+
+        add_service_provider = function(sp) {
+            cur_tile <- self$get_tile(sp$location)
+            if (length(cur_tile)) {
+                cur_tile[[1]]$add_service_provider(sp)
+            }
+            invisible(self)
         }
     )
 )
