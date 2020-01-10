@@ -12,6 +12,13 @@ Field <- R6::R6Class(
             if (verbose) {
                 cat("Creating field...\n")
             }
+            self$add_tiles(data, base_stations, verbose)
+            grid_connect(self, base_stations)
+            invisible(self)
+        },
+
+        add_tiles = function(data, base_stations, verbose) {
+            "Add the tiles of the map"
             for (i in 1:params$map_width) {
                 self$tiles[[i]] <- list()
                 for (j in 1:params$map_height) {
@@ -22,25 +29,7 @@ Field <- R6::R6Class(
                             `if`(round(runif(1)), 1, 0)
                         )
                     )
-                    for (base_station in base_stations) {
-                        if (euc_dist(base_station$location, c(i, j)) <= params$signal_radius) {
-                            is_edge <- (euc_dist(base_station$location, c(i + 1, j)) >
-                                params$signal_radius) ||
-                                (euc_dist(base_station$location, c(i, j + 1)) >
-                                    params$signal_radius) ||
-                                (euc_dist(base_station$location, c(i - 1, j)) >
-                                    params$signal_radius) ||
-                                (euc_dist(base_station$location, c(i, j - 1)) >
-                                    params$signal_radius)
-                            self$tiles[[i]][[j]]$add_signal(
-                                base_station,
-                                is_edge
-                            )
-                        }
-                        if (all(base_station$location == c(i, j))) {
-                            self$tiles[[i]][[j]]$add_base_station(base_station)
-                        }
-                    }
+                    self$add_base_stations(base_stations, i, j)
                 }
                 if (verbose) {
                     cat_progress(
@@ -50,7 +39,30 @@ Field <- R6::R6Class(
                     )
                 }
             }
-            grid_connect(self, base_stations)
+            invisible(self)
+        },
+
+        add_base_stations = function(base_stations, i, j) {
+            "Possibly add base stations or base station signals to the current tile"
+            for (base_station in base_stations) {
+                if (euc_dist(base_station$location, c(i, j)) <= params$signal_radius) {
+                    is_edge <- (euc_dist(base_station$location, c(i + 1, j)) >
+                        params$signal_radius) ||
+                        (euc_dist(base_station$location, c(i, j + 1)) >
+                            params$signal_radius) ||
+                        (euc_dist(base_station$location, c(i - 1, j)) >
+                            params$signal_radius) ||
+                        (euc_dist(base_station$location, c(i, j - 1)) >
+                            params$signal_radius)
+                    self$tiles[[i]][[j]]$add_signal(
+                        base_station,
+                        is_edge
+                    )
+                }
+                if (all(base_station$location == c(i, j))) {
+                    self$tiles[[i]][[j]]$add_base_station(base_station)
+                }
+            }
             invisible(self)
         },
 

@@ -28,12 +28,31 @@ Device <- R6::R6Class(
         old_contexts = list(),
         transacted = FALSE,
 
-        initialize = function(id, sp, map = NULL, loc = round(runif(2, min = 1, max = map_size))) {
+        initialize = function(id, sp, map = NULL, loc = NULL) {
             self$service_provider <- sp
+            self$setup_map(map, loc)
+            self$id <- id
+            self$set_trusts()
+            self$setup_signals(map)
+            self$velocity <- runif(1, min = 0, max = params$max_velocity)
+            self$capability <- runif(1, min = 1, max = params$max_capability)
+            self$reputations <- rep(params$init_reputation, params$number_nodes)
+            self$time_last_moved <- params$time_now - 1
+            self$estimated_trusts <- c(params$trust_new_contact)
+            self$setup_report_storage()
+            self$setup_reputations()
+            invisible(self)
+        },
+
+        setup_map = function(map, loc) {
+            "Setup the map realted values for this node"
             if (!is.null(map)) {
-                map_size <- map$shape()
                 self$map <- list(map)
-                self$location <- loc
+                self$location <- `if`(
+                    is.null(loc),
+                    round(runif(2, min = 1, max = map$shape())),
+                    loc
+                )
                 if (round(runif(1)) == 1) {
                     self$domain <- AIR
                 } else {
@@ -41,29 +60,35 @@ Device <- R6::R6Class(
                 }
                 self$new_goal()
             } else {
-                map_size <- c(params$map_width, params$map_height)
-                self$location <- loc
+                self$location <- round(
+                    runif(
+                        2,
+                        min = 1,
+                        max = c(params$map_width, params$map_height)
+                    )
+                )
                 self$map <- list()
                 self$domain <- sample(c(AIR, LAND, WATER), 1)
             }
-            self$id <- id
-            self$set_trusts()
+        },
+
+        setup_signals = function(map) {
+            "Add the signal from this node to the field"
             if (!is.null(map)) {
                 map$get_tile(self$location)[[1]]$add_device(self)
                 for (signal in map$get_tile(self$location)[[1]]$signals) {
                     signal$connect(self)
                 }
             }
-            self$velocity <- runif(1, min = 0, max = params$max_velocity)
-            self$capability <- runif(1, min = 1, max = params$max_capability)
-            self$reputations <- rep(params$init_reputation, params$number_nodes)
-            self$time_last_moved <- params$time_now - 1
-            self$estimated_trusts <- c(params$trust_new_contact)
+        },
+
+        setup_report_storage = function() {
+            "Setup the report storing values for each node"
             self$contexts <- lapply(
                 1:params$number_nodes,
                 function(i) {
                     `if`(
-                        i == id,
+                        i == self$id,
                         normalize(
                             c(
                                 params$time_now,
@@ -86,11 +111,15 @@ Device <- R6::R6Class(
                     params$trust_new_contact
                 }
             )
+        },
+
+        setup_reputations = function() {
+            "Setup the reputation related values for each node"
             self$reputations <- sapply(
                 1:params$number_nodes,
                 function(i) {
                     `if`(
-                        i == id,
+                        i == self$id,
                         params$rep_self,
                         params$init_reputation
                     )
@@ -108,7 +137,6 @@ Device <- R6::R6Class(
                     c(params$time_now - 1, 0, 0, 0)
                 }
             )
-            invisible(self)
         },
 
         add_contact = function(adds, devs) {
@@ -207,7 +235,6 @@ Device <- R6::R6Class(
             return(
                 Observation$new(
                     self$contexts[[self$id]][get_context_index(params$time_now)],
-                    # minimax(rs_dir_trust$trust_comb, -1, 1),
                     rs_dir_trust$trust_comb,
                     self$id,
                     self$acceptable_recs[[self$id]][[params$time_now]]
