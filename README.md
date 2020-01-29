@@ -45,3 +45,7 @@ For a batch of simulations across differing numbers of adversaries and types run
 ```
 ln config/pre-push.sh .git/hooks/pre-push
 ```
+
+## API Reference
+
+see https://codymlewis.gitlab.io/li-19-trust-model/li19trustmodel.pdf
