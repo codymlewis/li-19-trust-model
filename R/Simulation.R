@@ -15,13 +15,14 @@ NULL
 run_simulation <- function(total_time,
                            map_filename = system.file(
                                "extdata", "map.csv",
-                               package = "li19trustmodel"),
+                               package = "li19trustmodel"
+                           ),
                            config = system.file(
                                "extdata", "params.json",
                                package = "li19trustmodel"
                            ),
                            write_plots = TRUE) {
-    return(run_sim_part(total_time, map_filename, rjson::fromJSON(file=config), write_plots))
+    return(run_sim_part(total_time, map_filename, rjson::fromJSON(file = config), write_plots))
 }
 
 
@@ -33,18 +34,19 @@ run_simulation <- function(total_time,
 #' @export batch_simulation
 
 batch_simulation <- function(total_time,
-                           map_filename = system.file(
-                               "extdata", "map.csv",
-                               package = "li19trustmodel"),
-                           config = system.file(
-                               "extdata", "params.json",
-                               package = "li19trustmodel"
-                           ),
-                           num_adversaries = c(0, 2, 5, 8, 10),
-                           adversary_types = c("BadMouther", "ContextSetter"),
-                           colours = c("blue", "red", "green", "orange", "purple")) {
+                             map_filename = system.file(
+                                 "extdata", "map.csv",
+                                 package = "li19trustmodel"
+                             ),
+                             config = system.file(
+                                 "extdata", "params.json",
+                                 package = "li19trustmodel"
+                             ),
+                             num_adversaries = c(0, 2, 5, 8, 10),
+                             adversary_types = c("BadMouther", "ContextSetter"),
+                             colours = c("blue", "red", "green", "orange", "purple")) {
     dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
-    config <- rjson::fromJSON(file=config)
+    config <- rjson::fromJSON(file = config)
     for (adv_type in adversary_types) {
         config$adversary_type <- adv_type
         cat(sprintf("Running simulations with adversaries of %s type\n\n", adv_type))
@@ -63,8 +65,10 @@ batch_simulation <- function(total_time,
             levels = stringr::str_sort(levels(as.factor(data$L1)), numeric = TRUE)
         )
         cat("Creating plots...\n")
-        ggplot2::ggplot(data = data,
-                               ggplot2::aes(x = transactions, y = value, colour = as.factor(L1))) +
+        ggplot2::ggplot(
+            data = data,
+            ggplot2::aes(x = transactions, y = value, colour = as.factor(L1))
+        ) +
             ggplot2::geom_line() +
             ggplot2::scale_colour_manual(values = colours) +
             ggplot2::labs(
@@ -136,11 +140,11 @@ run_sim_part <- function(total_time, map_filename, config, write_plots) {
 #' @export run_gui
 
 run_gui <- function(map_filename = system.file("extdata", "map.csv", package = "li19trustmodel"),
-                       config = system.file(
-                           "extdata", "params.json",
-                           package = "li19trustmodel")
-    ) {
-    params$configure(rjson::fromJSON(file=config))
+                    config = system.file(
+                        "extdata", "params.json",
+                        package = "li19trustmodel"
+                    )) {
+    params$configure(rjson::fromJSON(file = config))
     map_and_devices <- create_map_and_devices(map_filename)
     dir.create("images/maps", recursive = TRUE, showWarning = FALSE)
     dir.create("images/plots", recursive = TRUE, showWarning = FALSE)
@@ -207,7 +211,7 @@ gui_add_trust <- function(tt, map_and_devices) {
     Cairo::CairoPNG(filename = filename, width = params$img_width, height = params$img_height)
     print(
         plot_estimated_trust(
-            length(length(map_and_devices$devices)),
+            length(map_and_devices$devices),
             map_and_devices$devices
         )
     )
@@ -311,11 +315,11 @@ gui_update_context <- function(gui_objects, cn) {
         gui_objects$contextvals_label,
         text = paste(
             sprintf(
-                "%s: %f",
+                "%s:\t%f",
                 c("Capability", "Distance", "Velocity"),
                 cn$get_target_context()[2:4]
             ),
-            collapse = ", "
+            collapse = "\n"
         )
     )
 }
@@ -326,7 +330,7 @@ gui_update_reputation <- function(gui_objects, cn, map_and_devices) {
         gui_objects$reps_label,
         text = paste(
             sprintf(
-                "Node %d:\t%f", 
+                "Node %d:\t%f",
                 seq_len(length(map_and_devices$devices)),
                 cn$reputations
             ),
@@ -351,15 +355,16 @@ find_chosen_node <- function(chosen_node_cb, map_and_devices) {
 
 
 gui_add_context <- function(tt, cn) {
+    tcltk::tkgrid(tcltk2::tk2label(tt, text = "Contexts:"), row = "2", column = "0")
     contextvals_label <- tcltk2::tk2label(
         tt,
         text = paste(
             sprintf(
-                "%s: %f",
+                "%s:\t%f",
                 c("Capability", "Distance", "Velocity"),
                 cn$get_target_context()[2:4]
             ),
-            collapse = ", "
+            collapse = "\n"
         )
     )
     tcltk::tkgrid(contextvals_label, row = "2", column = "1")
@@ -421,7 +426,8 @@ gui_add_close_button <- function(tt, map_and_devices, chosen_node) {
         ),
         row = "5",
         column = "1"
-    )}
+    )
+}
 
 
 write_map <- function(map, save = TRUE) {
@@ -617,13 +623,13 @@ assign_contacts <- function(devices) {
 
 assign_observer_contacts <- function(devices) {
     adv_ids <- `if`(
-            params$number_adversaries == 0,
-            NULL,
-            1:params$number_adversaries
+        params$number_adversaries == 0,
+        NULL,
+        1:params$number_adversaries
     )
     num_norm_con <- params$number_observer_contacts - params$number_adversaries - 1
     possible_contacts <- (params$number_adversaries + 2):
-                (params$number_adversaries + params$number_good_nodes)
+    (params$number_adversaries + params$number_good_nodes)
     devices[[length(devices)]]$add_contact(
         c(
             `if`(
@@ -694,8 +700,8 @@ plot_estimated_trust <- function(dev_id, devices) {
     plt <- ggplot2::ggplot(data = data, ggplot2::aes(x = transactions, y = estimated_trusts)) +
         ggplot2::labs(
             title = `if`(
-                dev_id == params$number_nodes, 
-                "Estimated Trusts of Device the Observer", 
+                dev_id == params$number_nodes,
+                "Estimated Trusts of Device the Observer",
                 sprintf("Estimated Trusts of Device %d", dev_id)
             ),
             x = "Time",
@@ -703,11 +709,12 @@ plot_estimated_trust <- function(dev_id, devices) {
             colour = NULL
         ) +
         ggplot2::scale_y_continuous(limits = c(-1.1, 1.1))
+    line_colour <- `if`(dev_id <= params$number_adversaries, "red", "blue")
     return(
         `if`(
             length(devices[[dev_id]]$estimated_trusts) > 1,
-            plt + ggplot2::geom_line(colour = "blue"),
-            plt + ggplot2::geom_point(colour = "blue")
+            plt + ggplot2::geom_line(colour = line_colour),
+            plt + ggplot2::geom_point(colour = line_colour)
         )
     )
 }

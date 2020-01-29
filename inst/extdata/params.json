@@ -32,7 +32,7 @@
     "min_trans": 1,
     "max_trans": 1,
     "compression_factor": -1,
-    "number_adversaries": 2,
+    "number_adversaries": 8,
     "adversary_type": "BadMouther",
     "contacts_per_node": 10,
     "rand_context": false,

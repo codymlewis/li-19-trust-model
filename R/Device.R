@@ -70,6 +70,7 @@ Device <- R6::R6Class(
                 self$map <- list()
                 self$domain <- sample(c(AIR, LAND, WATER), 1)
             }
+            invisible(self)
         },
 
         setup_signals = function(map) {
@@ -80,6 +81,7 @@ Device <- R6::R6Class(
                     signal$connect(self)
                 }
             }
+            invisible(self)
         },
 
         setup_report_storage = function() {
@@ -103,7 +105,9 @@ Device <- R6::R6Class(
             )
             self$acceptable_recs <- lapply(
                 1:params$number_nodes,
-                function(i) { c(FALSE) }
+                function(i) {
+                    c(FALSE)
+                }
             )
             self$stored_trusts <- lapply(
                 1:params$number_nodes,
@@ -111,6 +115,7 @@ Device <- R6::R6Class(
                     params$trust_new_contact
                 }
             )
+            invisible(self)
         },
 
         setup_reputations = function() {
@@ -137,6 +142,7 @@ Device <- R6::R6Class(
                     c(params$time_now - 1, 0, 0, 0)
                 }
             )
+            invisible(self)
         },
 
         add_contact = function(adds, devs) {
@@ -283,7 +289,7 @@ Device <- R6::R6Class(
         calc_acceptability = function(obs) {
             if (any(self$acceptable_recs[[obs$id_sender]])) {
                 if (self$acceptable_recs[[obs$id_sender]][[params$time_now - 1]]) {
-                    self$old_trusts[[obs$id_sender]] <- 
+                    self$old_trusts[[obs$id_sender]] <-
                         self$stored_trusts[[obs$id_sender]][[params$time_now - 1]]
                     self$old_contexts[[obs$id_sender]] <-
                         self$contexts[[obs$id_sender]][get_context_index(params$time_now - 1)]
@@ -532,7 +538,7 @@ Device <- R6::R6Class(
             invisible(self)
         },
 
-        get_considerations = function(excludes=c()) {
+        get_considerations = function(excludes = c()) {
             "Find which recommendations should be considered"
             return(
                 lapply(
@@ -611,8 +617,8 @@ Device <- R6::R6Class(
                                                 get_context_index(considerations[[i]])
                                             ]
                                         ) *
-                                        self$reputations[[i]] *
-                                        self$stored_trusts[[i]][considerations[[i]]]
+                                            self$reputations[[i]] *
+                                            self$stored_trusts[[i]][considerations[[i]]]
                                     )
                                 )
                             )
@@ -627,7 +633,9 @@ Device <- R6::R6Class(
         performance_updates = function() {
             lapply(
                 self$contacts,
-                function(i) { self$performance_update(i) }
+                function(i) {
+                    self$performance_update(i)
+                }
             )
             invisible(self)
         },
@@ -712,7 +720,9 @@ Device <- R6::R6Class(
         combine_reps = function() {
             lapply(
                 self$contacts,
-                function(i) { self$combine_rep(i) }
+                function(i) {
+                    self$combine_rep(i)
+                }
             )
             invisible(self)
         },
